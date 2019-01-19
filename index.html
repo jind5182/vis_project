@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no">
+    <title>Title</title>
+    <style>
+        [role=person]{
+            fill:rgb(44, 160, 44)
+        }
+        [role=event]{
+            fill:rgb(20, 141, 228)
+        }
+        #force{
+            height:100%;
+            width:100%;
+        }
+        #character{
+            height:100%;
+            width:100%;
+        }
+        #intro{
+            position: absolute;
+            z-index: 9999;
+            width: 180px;
+            height: 210px;
+            background-color: gainsboro;
+        }
+        #pic{
+            width: 100%;
+            text-align: center;
+        }
+        img{
+            width: 80px;
+            height: 80px;
+        }
+        #title{
+            text-align: center;
+        }
+        #intro{
+            font-size: 10px;
+        }
+    </style>
+    <script src="js/d3.v4.min.js"></script>
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <script src="http://cdn.bootcss.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <nav class="navbar navbar-default" role="navigation">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand">《射雕英雄传》可视化</a>
+            </div>
+        </div>
+    </nav>
+    <div id="progressBarDiv" style="height: 30px;width: 900px;" class="row">
+        <div id="progressBar" class="col-sm-11">
+        </div>
+        <div id="buttonDiv" class="col-sm-1">
+            <button id="startButton" class="btn btn-primary btn-sm">开始</button>
+        </div>
+    </div>
+    <div id="chapter_name">
+        <h2 style="margin-left: 5px">test</h2>
+    </div>
+    <button onclick="change()">Change</button>
+    <div id="intro">
+        <div style="float: right; cursor: pointer;" onclick="$('#intro').hide()">x</div>
+        <div id="pic"><img></div>
+        <div id="title"></div>
+        <div id="content">这是一份简介</div>
+    </div>
+    <div id="colors">
+        
+    </div>
+    <div id="box">
+        <svg id="force"></svg>
+    </div>
+</body>
+<script type="text/javascript">
+    var progress = 0;
+    var timerID;
+    var json = new Object();
+    var chapters = new Array();
+    var intros = new Object();
+    var power = new Object();
+    var levelArray = new Array(1, 0.75, 0.5, 0.25, 0);
+    var charNumArray = new Array();
+    var maxCharNum = 0;
+    var barSVG = d3.select("#progressBar")
+        .append("svg")
+        .attr("height", 30)
+        .attr("width", 780);
+    barSVG.append("text")
+        .attr("x", 5)
+        .attr("y", 25)
+        .text("章节进度条：");
+    var bookLen = 0;
+    // jquery提供的“定时器”，用于同步操作
+    var t_df = $.Deferred();
+    //读入event_and_character数据
+    d3.json('data/event_and_character.json', function (error, jsonData) {
+        if (error)
+            throw error;
+        json = jsonData;
+        for (var i in json.chapter) {
+            var tempCharNum = 0;
+            for (var j in json.chapter[i].event) {
+                for (var k in json.chapter[i].event[j].character) {
+                    tempCharNum++;
+                }
+            }
+            charNumArray[bookLen++] = tempCharNum;
+            if (tempCharNum > maxCharNum) {
+                maxCharNum = tempCharNum;
+            }
+        }
+        d3.json('data/node&link.json', function (error2, data) {
+            chapters = data.chapter;
+            d3.json('data/intro.json', function (error3, introdata) {
+                intros = introdata;
+                d3.json('data/char_from.json', function (error4, powerdata) {
+                    power = powerdata;
+                    t_df.resolve();
+                })
+            });
+        });
+    });
+    // 定时器.done：定义“定时器释放”后的后续操作
+    function drawforce() {
+        progress = 0;
+        for (var i = 0; i < bookLen; i++) {
+            barSVG.append("rect")
+                .attr("height", 20)
+                .attr("width", 15)
+                .attr("x", 100 + i * 15)
+                .attr("y", 8)
+                .attr("fill", "white")
+                .attr("stroke", "black")
+                .attr("opacity", 0.7)
+                .attr("stroke-width", 0.5)
+                .attr("class", "progressBarRect")
+                .attr("id", function () {
+                    return 'rect' + String(i);
+                });
+        }
+        d3.selectAll('.progressBarRect')
+            .data(json.chapter);
+        barSVG.append("text")
+            .attr("x", 110 + bookLen * 15)
+            .attr("y", 25)
+            .text("共" + String(bookLen) + "章");
+        document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">' + json.chapter[0].chap_name + '</h2>';
+        d3.select('#rect0')
+            .attr("fill", d3.hsl(206, charNumArray[0] / maxCharNum, 0.5).toString());
+        d3.select('#startButton')
+            .on("click", function (d, i) {
+                var status = document.getElementById(this.id).className;
+                //开始推进
+                if (status == "btn btn-primary btn-sm") {
+                    d3.select('#startButton')
+                        .attr("class", "btn btn-danger btn-sm")
+                        .text("暂停");
+                    d3.selectAll('.progressBarRect')
+                        .attr("opacity", 0.7)
+                        .attr("active", false);
+                    progress++;
+                    //修改标题
+                    document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">'
+                        + json.chapter[progress].chap_name + '</h2>';
+                    //填充进度条的格子
+                    d3.select('#rect' + String(progress))
+                        .attr("fill", d3.hsl(206, charNumArray[progress] / maxCharNum, 0.5).toString());
+                    //插入更新图谱的函数，更新前取消所有高亮
+                    add(progress)
+                    timerID = setInterval(function () {
+                        if (progress == bookLen + 1) {
+                            alert("已到结局！");
+                            clearInterval(timerID);
+                        }
+                        else {
+                            d3.selectAll('.progressBarRect')
+                                .attr("opacity", 0.7)
+                                .attr("active", false);
+                            progress++;
+                            //修改标题
+                            document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">'
+                                + json.chapter[progress].chap_name + '</h2>';
+                            //填充进度条的格子
+                            d3.select('#rect' + String(progress))
+                                .attr("fill", d3.hsl(206, charNumArray[progress] / maxCharNum, 0.5).toString());
+                            //插入更新图谱的函数，更新前取消所有高亮
+                            add(progress)
+                        }
+                    }, 1000);
+                }
+                else {
+                    d3.select('#startButton')
+                        .attr("class", "btn btn-primary btn-sm")
+                        .text("开始");
+                    clearInterval(timerID);
+                }
+            });
+        d3.selectAll('.progressBarRect')
+            .on("click", function (d, i) {
+                //console.log(this.id);
+                //console.log(d);
+                var status = document.getElementById('startButton').className;
+                if (status == "btn btn-danger btn-sm") {
+                    alert("请在暂停状态下查看每章详情！");
+                }
+                else {
+                    var chapID = parseInt(this.id.substring(4));
+                    if (chapID > progress) {
+                        alert("请在该章节内容显示后再查看！");
+                    }
+                    else {
+                        document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">'
+                            + json.chapter[chapID].chap_name + '</h2>';
+                        var active = this.active ? false : true;
+                        if (active) {
+                            d3.select('#' + this.id)
+                                .attr("opacity", 1);
+                            this.active = active;
+                            highlight(chapID)
+                        }
+                        else {
+                            d3.select('#' + this.id)
+                                .attr("opacity", 0.7);
+                            this.active = active;
+                            recover(chapID);
+                        }
+
+                    }
+                }
+            });
+
+        var nodes = new Array();
+        let tmpnodes = chapters[0].node;
+        for (let i = 0; i < tmpnodes.length; i++) {
+            let j;
+            for (j = 0; j < nodes.length; j++) {
+                if (tmpnodes[i].id == nodes[j].id) {
+                    break;
+                }
+            }
+            if (j >= nodes.length) {
+                nodes.push(tmpnodes[i]);
+            }
+        }
+        var links = chapters[0].link;
+
+        var width = 800;
+        var height = 500;
+        var svg = d3.select("#force")
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .attr("viewBox", "0 0 800 500");
+        var circle_radius = 10;
+        $("#intro").hide();
+
+        // 通过布局来转换数据，然后进行绘制
+        var simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(function (d) { return d.id }).distance(50))
+            .force("charge", d3.forceManyBody().strength(-100))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        var color = d3.scaleOrdinal(d3.schemeCategory20);
+        // 绘制线
+        var svg_links = svg.selectAll(".edgepath")
+            .data(links)
+            .enter()
+            .append("path")
+            .style("stroke", "#ccc")
+            .style("opacity", 0.5)
+            .style("stroke-width", 0.5);
+
+        //节点对象
+        var svg_circlenodes = svg.selectAll(".nodecircle")
+            .data(nodes.filter(node => node.role == "person"))
+            .enter()
+            .append("circle")
+            .attr("r", function (node) {
+                return node.weight;
+            })
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended))
+            .style("fill", function (node) {
+                switch (power[node.name]) {
+                    case "宋朝平民":
+                        return "green";
+                    case "桃花岛":
+                        return "pink";
+                    case "金国":
+                        return "yellow";
+                    case "全真教":
+                        return "red";
+                    case "江南七怪":
+                        return "purple";
+                    case "宋朝官员":
+                        return "lightskyblue";
+                    case "宋朝武林（其他门派）":
+                        return "lightyellow";
+                    case "蒙古":
+                        return "greenyellow";
+                    case "北方武林":
+                        return "lightseagreen";
+                    case "西域":
+                        return "magenta";
+                    case "丐帮":
+                        return "slategrey";
+                    case "大理国":
+                        return "orange";
+                }
+            })
+            .on("click", function (node) {
+                if ($("#title").html() == node.name) {
+                    svg_links.style("stroke-width", 0.5)
+                        .style("stroke", "#ccc");
+                    link_text.style("visbility", "visible");
+                    $("#intro").hide();
+                    $("#title").html("title");
+                    return;
+                }
+                svg_links.style("stroke-width", function (line) {
+                    if (line.source.id == node.id || line.target.id == node.id) {
+                        return 1;
+                    } else {
+                        return 0.5;
+                    }
+                })
+                    .style("stroke", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return "red";
+                        } else {
+                            return "#ccc";
+                        }
+                    });
+                link_text.style("visibility", function (line) {
+                    if (line.source.id == node.id || line.target.id == node.id) {
+                        return "visible";
+                    } else {
+                        return "hidden";
+                    }
+                });
+
+                $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                $("#title").html(node.name);
+                $("#content").html(intros[node.name]);
+                $("#intro").show();
+            });
+
+        var svg_rectnodes = svg.selectAll(".noderect")
+            .data(nodes.filter(node => node.role == "event"))
+            .enter()
+            .append("rect")
+            .attr("width", function (node) {
+                return node.weight;
+            })
+            .attr("height", function (node) {
+                return node.weight;
+            })
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended))
+            .on("click", function (node) {
+                if ($("#title").html() == node.name) {
+                    svg_links.style("stroke-width", 0.5)
+                        .style("stroke", "#ccc");
+                    link_text.style("visbility", "visible");
+                    $("#intro").hide();
+                    $("#title").html("title");
+                    return;
+                }
+                svg_links.style("stroke-width", function (line) {
+                    if (line.source.id == node.id || line.target.id == node.id) {
+                        return 1;
+                    } else {
+                        return 0.5;
+                    }
+                })
+                    .style("stroke", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return "red";
+                        } else {
+                            return "#ccc";
+                        }
+                    });
+                link_text.style("visibility", function (line) {
+                    if (line.source.id == node.id || line.target.id == node.id) {
+                        return "visible";
+                    } else {
+                        return "hidden";
+                    }
+                });
+                $("img").hide();
+                $("#title").html(node.name);
+                $("#content").html(intros[node.name]);
+                $("#intro").show();
+            });
+
+        function dragstarted(d) {
+            if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(d) {
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function dragended(d) {
+            if (!d3.event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        //连线描述
+        var link_text = svg.selectAll(".edgepath")
+            .data(links)
+            .enter()
+            .append("text")
+            .style("fill", "#000")
+            .style("font-size", 5)
+            .style("visibility", "hidden")
+            .text(function (d) { return d.rela; });
+
+        //节点描述
+        var svg_text = svg.selectAll(".nodecircle,.noderect")
+            .data(nodes)
+            .enter()
+            .append("text")
+            .style("fill", "#000")
+            .style("font-size", 7)
+            .style("cursor", "default")
+            .style("pointer-events", "none")
+            .attr("dominant-baseline", "middle")
+            .attr("text-anchor", "middle")//在圆圈中加上数据
+            /*.attr("dy", "0.3em")
+            .attr("x", function (d) {
+                if (d.name.length <= 4) {
+                    d3.select(this).append('tspan')
+                        .text(function () { return d.name; });
+                } else {
+                    let top = d.name.slice(0, Math.ceil(d.name.length / 2));
+                    let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
+                    d3.select(this).append('tspan')
+                        .attr("x", 0)
+                        .attr("y", -4)
+                        .text(function () { return top; });
+                    d3.select(this).append('tspan')
+                        .attr("x", 0)
+                        .attr("y", 6)
+                        .text(function () { return bottom; });
+                }
+            })*/
+            .text(function (d) { return d.name; })
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        function draw() {
+            svg_circlenodes
+                .attr("cx", function (d) { return d.x; })
+                .attr("cy", function (d) { return d.y; })
+                .attr("role", function (d) {
+                    return d.role;
+                });
+
+            svg_rectnodes
+                .attr("x", function (d) { return d.x - d.weight / 2; })
+                .attr("y", function (d) { return d.y - d.weight / 2; })
+                .attr("role", function (d) {
+                    return d.role;
+                });
+
+            svg_text//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
+                .attr("x", function (d) { return d.x; })
+                .attr("y", function (d) { return d.y; });
+
+            svg_links
+                .attr("d", function (d) {
+                    let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
+                    let flag = (Math.abs(d.source.x - d.target.x) > Math.abs(d.source.y - d.target.y));
+                    let proportion = Math.abs(d.source.x - d.target.x) / Math.abs(d.source.y - d.target.y);
+                    let xchanges, xchanget, ychanges, ychanget;
+                    if (d.source.role == "person") {
+                        xchanges = (d.source.weight / length) * (d.target.x - d.source.x);
+                        ychanges = (d.source.weight / length) * (d.target.y - d.source.y);
+                    } else {
+                        if (flag) {
+                            xchanges = d.source.weight / 2;
+                            ychanges = (d.source.weight / 2) / proportion;
+                        } else {
+                            xchanges = (d.source.weight / 2) * proportion;
+                            ychanges = d.source.weight / 2;
+                        }
+                        if (d.source.x > d.target.x) {
+                            xchanges = -xchanges;
+                        }
+                        if (d.source.y > d.target.y) {
+                            ychanges = -ychanges;
+                        }
+                    }
+                    if (d.target.role == "person") {
+                        xchanget = (d.target.weight / length) * (d.target.x - d.source.x);
+                        ychanget = (d.target.weight / length) * (d.target.y - d.source.y);
+                    } else {
+                        if (flag) {
+                            xchanget = d.target.weight / 2;
+                            ychanget = (d.target.weight / 2) / proportion;
+                        } else {
+                            xchanget = (d.target.weight / 2) * proportion;
+                            ychanget = d.target.weight / 2;
+                        }
+                        if (d.source.x > d.target.x) {
+                            xchanget = -xchanget;
+                        }
+                        if (d.source.y > d.target.y) {
+                            ychanget = -ychanget;
+                        }
+                    }
+                    return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
+                })
+                .attr("marker-end", "url(#resolved)");
+
+            link_text
+                .attr("x", function (d) { return (d.source.x + d.target.x - 10) / 2; })
+                .attr("y", function (d) { return (d.source.y + d.target.y) / 2; });
+        }
+        simulation.on("tick", draw);
+        svg.call(d3.zoom().scaleExtent([0.05, 8]).on('zoom', () => {
+            // 保存当前缩放的属性值
+            var transform = d3.event.transform;
+            svg_circlenodes.attr('transform', transform);
+            svg_rectnodes.attr('transform', transform);
+            svg_links.attr("transform", transform);
+            svg_text.attr("transform", transform);
+            link_text.attr("transform", transform);
+        })).on('dblclick.zoom', null);
+
+        //动态添加节点
+        function add(progress) {
+            let tmpnodes = chapters[progress].node;
+            for (let i = 0; i < tmpnodes.length; i++) {
+                let j;
+                for (j = 0; j < nodes.length; j++) {
+                    if (tmpnodes[i].id == nodes[j].id) {
+                        break;
+                    }
+                }
+                if (j >= nodes.length) {
+                    nodes.push(tmpnodes[i]);
+                }
+            }
+            links = links.concat(chapters[progress].link);
+            svg_rectnodes.style("opacity", function (node) {
+                if (node.role == "event") {
+                    if (node.opacity > 0.5) {
+                        node.opacity = node.opacity * 0.9;
+                    }
+                    return node.opacity;
+                }
+            });
+            svg_text.style("opacity", function (node) {
+                if (node.role == "event") {
+                    if (node.opacity > 0.5) {
+                        node.opacity = node.opacity * 0.9;
+                    }
+                    return node.opacity;
+                }
+            });
+            svg_circlenodes.attr("r", function (node) { return node.weight; })
+            restart()
+        }
+
+        function restart() {
+            // Apply the general update pattern to the nodes.
+            // Apply the general update pattern to the links.
+            svg_links = svg_links
+                .data(links)
+                .enter()
+                .append("path")
+                .style("stroke", "#ccc")
+                .style("opacity", 0.5)
+                .style("stroke-width", 0.5)
+                .merge(svg_links);
+
+            svg_circlenodes = svg_circlenodes
+                .data(nodes.filter(node => node.role == "person"))
+                .enter()
+                .append("circle")
+                .attr("r", function (node) {
+                    return node.weight;
+                })
+                .merge(svg_circlenodes).call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended))
+                .style("fill", function (node) {
+                    switch (power[node.name]) {
+                        case "宋朝平民":
+                            return "green";
+                        case "桃花岛":
+                            return "pink";
+                        case "金国":
+                            return "yellow";
+                        case "全真教":
+                            return "red";
+                        case "江南七怪":
+                            return "purple";
+                        case "宋朝官员":
+                            return "lightskyblue";
+                        case "宋朝武林（其他门派）":
+                            return "lightyellow";
+                        case "蒙古":
+                            return "greenyellow";
+                        case "北方武林":
+                            return "lightseagreen";
+                        case "西域":
+                            return "magenta";
+                        case "丐帮":
+                            return "slategrey";
+                        case "大理国":
+                            return "orange";
+                        default:
+                            return "tan";
+                    }
+                })
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        svg_links.style("stroke-width", 0.5)
+                            .style("stroke", "#ccc");
+                        link_text.style("visbility", "visible");
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    svg_links.style("stroke-width", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return 1;
+                        } else {
+                            return 0.5;
+                        }
+                    })
+                        .style("stroke", function (line) {
+                            if (line.source.id == node.id || line.target.id == node.id) {
+                                return "red";
+                            } else {
+                                return "#ccc";
+                            }
+                        });
+                    link_text.style("visibility", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return "visible";
+                        } else {
+                            return "hidden";
+                        }
+                    });
+                    $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+
+            svg_rectnodes = svg_rectnodes
+                .data(nodes.filter(node => node.role == "event"))
+                .enter()
+                .append("rect")
+                .attr("width", function (node) {
+                    return node.weight;
+                })
+                .attr("height", function (node) {
+                    return node.weight;
+                })
+                .merge(svg_rectnodes).call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended))
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        svg_links.style("stroke-width", 0.5)
+                            .style("stroke", "#ccc");
+                        link_text.style("visbility", "visible");
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    svg_links.style("stroke-width", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return 1;
+                        } else {
+                            return 0.5;
+                        }
+                    })
+                        .style("stroke", function (line) {
+                            if (line.source.id == node.id || line.target.id == node.id) {
+                                return "red";
+                            } else {
+                                return "#ccc";
+                            }
+                        });
+                    link_text.style("visibility", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return "visible";
+                        } else {
+                            return "hidden";
+                        }
+                    });
+                    $("img").hide();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+
+            //节点描述
+            svg_text = svg_text
+                .data(nodes)
+                .enter()
+                .append("text")
+                .style("fill", "#000")
+                .style("font-size", 7)
+                .style("cursor", "default")
+                .style("pointer-events", "none")
+                .attr("dominant-baseline", "middle")
+                .attr("text-anchor", "middle")//在圆圈中加上数据
+                /*.attr("dy", "0.3em")
+                .attr("x", function (d) {
+                    if (d.name.length <= 4) {
+                        d3.select(this).append('tspan')
+                            .text(function () { return d.name; });
+                    } else {
+                        let top = d.name.slice(0, Math.ceil(d.name.length / 2));
+                        let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
+                        d3.select(this).append('tspan')
+                            .attr("x", 0)
+                            .attr("y", -4)
+                            .text(function () { return top; });
+                        d3.select(this).append('tspan')
+                            .attr("x", 0)
+                            .attr("y", 6)
+                            .text(function () { return bottom; });
+                    }
+                })*/
+                .text(function (d) { return d.name; })
+                .merge(svg_text)
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            link_text = link_text
+                .data(links)
+                .enter()
+                .append("text")
+                .style("fill", "#000")
+                .style("font-size", 5)
+                .style("visibility", "hidden")
+                .text(function (d) { return d.rela; })
+                .merge(link_text);
+
+            // svg_text = svg_text.data()
+            // Update and restart the simulation.
+            simulation.nodes(nodes);
+            simulation.force("link").links(links);
+            simulation.alpha(0.3).restart();
+        }
+
+        function highlight(id) {
+            let ids = [];
+            chapters[id].node.forEach(element => {
+                if (ids.indexOf(element.id) < 0) {
+                    ids.push(element.id);
+                }
+            });
+            console.log(id);
+            svg_rectnodes
+                .style("opacity", function (node) {
+                    if (ids.indexOf(node.id) >= 0) {
+                        return 1;
+                    } else {
+                        return 0.1;
+                    }
+                })
+                .on("click", function (node) {
+                    if (ids.indexOf(node.id) < 0) {
+                        return;
+                    }
+                    if ($("#title").html() == node.name) {
+                        svg_links.style("stroke-width", 0.5)
+                            .style("stroke", "#ccc");
+                        link_text.style("visbility", "visible");
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    svg_links.style("stroke-width", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return 1;
+                        } else {
+                            return 0.5;
+                        }
+                    })
+                        .style("stroke", function (line) {
+                            if (line.source.id == node.id || line.target.id == node.id) {
+                                return "red";
+                            } else {
+                                return "#ccc";
+                            }
+                        });
+                    link_text.style("visibility", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return "visible";
+                        } else {
+                            return "hidden";
+                        }
+                    });
+                    $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+            svg_text.style("opacity", function (node) {
+                if (ids.indexOf(node.id) >= 0) {
+                    return 1;
+                } else {
+                    return 0.1;
+                }
+            });
+            svg_circlenodes
+                .style("opacity", function (node) {
+                    if (ids.indexOf(node.id) >= 0) {
+                        return 1;
+                    } else {
+                        return 0.1;
+                    }
+                })
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        svg_links.style("stroke-width", 0.5)
+                            .style("stroke", "#ccc");
+                        link_text.style("visbility", "visible");
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    svg_links.style("stroke-width", function (line) {
+                        if ((line.source.id == node.id || line.target.id == node.id) && ids.indexOf(line.target.id) >= 0 && ids.indexOf(line.source.id) >= 0) {
+                            return 1;
+                        } else {
+                            return 0.5;
+                        }
+                    })
+                        .style("stroke", function (line) {
+                            if ((line.source.id == node.id || line.target.id == node.id) && ids.indexOf(line.target.id) >= 0 && ids.indexOf(line.source.id) >= 0) {
+                                return "red";
+                            } else {
+                                return "#ccc";
+                            }
+                        });
+                    link_text.style("visibility", function (line) {
+                        if ((line.source.id == node.id || line.target.id == node.id) && ids.indexOf(line.target.id) >= 0 && ids.indexOf(line.source.id) >= 0) {
+                            return "visible";
+                        } else {
+                            return "hidden";
+                        }
+                    });
+                    if (ids.indexOf(node.id) >= 0) {
+                        $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                        $("#title").html(node.name);
+                        $("#content").html(intros[node.name]);
+                        $("#intro").show();
+                    }
+                })
+        }
+        function recover(id) {
+            let ids = [];
+            chapters[id].node.forEach(element => {
+                if (ids.indexOf(element.id) < 0) {
+                    ids.push(element.id);
+                }
+            });
+            svg_rectnodes
+                .style("opacity", function (node) {
+                    return node.opacity;
+                })
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        svg_links.style("stroke-width", 0.5)
+                            .style("stroke", "#ccc");
+                        link_text.style("visbility", "visible");
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    svg_links.style("stroke-width", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return 1;
+                        } else {
+                            return 0.5;
+                        }
+                    })
+                        .style("stroke", function (line) {
+                            if (line.source.id == node.id || line.target.id == node.id) {
+                                return "red";
+                            } else {
+                                return "#ccc";
+                            }
+                        });
+                    link_text.style("visibility", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return "visible";
+                        } else {
+                            return "hidden";
+                        }
+                    });
+                    $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+            svg_circlenodes
+                .style("opacity", function (node) {
+                    return node.opacity;
+                })
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        svg_links.style("stroke-width", 0.5)
+                            .style("stroke", "#ccc");
+                        link_text.style("visbility", "visible");
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    svg_links.style("stroke-width", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return 1;
+                        } else {
+                            return 0.5;
+                        }
+                    })
+                        .style("stroke", function (line) {
+                            if (line.source.id == node.id || line.target.id == node.id) {
+                                return "red";
+                            } else {
+                                return "#ccc";
+                            }
+                        });
+                    link_text.style("visibility", function (line) {
+                        if (line.source.id == node.id || line.target.id == node.id) {
+                            return "visible";
+                        } else {
+                            return "hidden";
+                        }
+                    });
+                    $("img").hide();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+            svg_text.style("opacity", function (node) {
+                return node.opacity;
+            });
+        }
+    }
+    t_df.done(drawforce);
+
+    function change() {
+        if (document.getElementById("force")) {
+            $("#force").remove();
+            $("#box").append("<svg id='character'></svg>");
+            d3.json("data/interact_weight.json", function (error, data) {
+                var links2 = data.char_relation;
+                var nodes2 = new Array();
+                for (let i = 0; i < links2.length; i++) {
+                    let j;
+                    for (j = 0; j < nodes2.length; j++) {
+                        if (links2[i].source == nodes2[j].name) {
+                            break;
+                        }
+                    }
+                    if (j >= nodes2.length) {
+                        nodes2.push({ name: links2[i].source });
+                    }
+                    for (j = 0; j < nodes2.length; j++) {
+                        if (links2[i].target == nodes2[j].name) {
+                            break;
+                        }
+                    }
+                    if (j >= nodes2.length) {
+                        nodes2.push({ name: links2[i].target });
+                    }
+                }
+                var width2 = 800;
+                var height2 = 500;
+                var svg2 = d3.select("#character")
+                    .attr("preserveAspectRatio", "xMidYMid meet")
+                    .attr("viewBox", "0 0 800 500");
+                var circle_radius2 = 10;
+                $("#intro").hide();
+
+                // 通过布局来转换数据，然后进行绘制
+                var simulation2 = d3.forceSimulation(nodes2)
+                    .force("link", d3.forceLink(links2).id(function (d) { return d.name }).distance(70))
+                    .force("charge", d3.forceManyBody().strength(-8))
+                    .force("center", d3.forceCenter(width2 / 2, height2 / 2));
+
+                var color2 = d3.scaleOrdinal(d3.schemeCategory20);
+                // 绘制线
+                var svg_links2 = svg2.selectAll(".edgepath")
+                    .data(links2)
+                    .enter()
+                    .append("path")
+                    .style("stroke", "#ccc")
+                    .style("opacity", 0.5)
+                    .style("stroke-width", function (line) {
+                        return line.weight * 5;
+                    });
+
+                //节点对象
+                var svg_circlenodes2 = svg2.selectAll(".nodecircle")
+                    .data(nodes2)
+                    .enter()
+                    .append("circle")
+                    .attr("r", function (node) {
+                        return circle_radius2;
+                    })
+                    .call(d3.drag()
+                        .on("start", dragstarted2)
+                        .on("drag", dragged2)
+                        .on("end", dragended2))
+                    .style("fill", function (node) {
+                        switch (power[node.name]) {
+                            case "宋朝平民":
+                                return "green";
+                            case "桃花岛":
+                                return "pink";
+                            case "金国":
+                                return "yellow";
+                            case "全真教":
+                                return "red";
+                            case "江南七怪":
+                                return "purple";
+                            case "宋朝官员":
+                                return "lightskyblue";
+                            case "宋朝武林（其他门派）":
+                                return "lightyellow";
+                            case "蒙古":
+                                return "greenyellow";
+                            case "北方武林":
+                                return "lightseagreen";
+                            case "西域":
+                                return "magenta";
+                            case "丐帮":
+                                return "slategrey";
+                            case "大理国":
+                                return "orange";
+                            default:
+                                return "tan"
+                        }
+                    })
+                    .on("click", function (node) {
+                        if ($("#title").html() == node.name) {
+                            svg_links2
+                                .style("stroke", "#ccc");
+                            link_text2.style("visbility", "visible");
+                            $("#intro").hide();
+                            $("#title").html("title");
+                            return;
+                        }
+                        svg_links2
+                            .style("stroke", function (line) {
+                                if (line.source.name == node.name || line.target.name == node.name) {
+                                    return "red";
+                                } else {
+                                    return "#ccc";
+                                }
+                            });
+
+                        $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                        $("#title").html(node.name);
+                        $("#content").html(intros[node.name]);
+                        $("#intro").show();
+                    });
+
+                function dragstarted2(d) {
+                    if (!d3.event.active) simulation2.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+
+                function dragged2(d) {
+                    d.fx = d3.event.x;
+                    d.fy = d3.event.y;
+                }
+
+                function dragended2(d) {
+                    if (!d3.event.active) simulation2.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+                //连线描述
+                var link_text2 = svg2.selectAll(".edgepath")
+                    .data(links2)
+                    .enter()
+                    .append("text")
+                    .style("fill", "#000")
+                    .style("font-size", 5)
+                    .text(function (d) { return d.rela; });
+
+                //节点描述
+                var svg_text2 = svg2.selectAll(".nodecircle,.noderect")
+                    .data(nodes2)
+                    .enter()
+                    .append("text")
+                    .style("fill", "#000")
+                    .style("font-size", 7)
+                    .style("cursor", "default")
+                    .style("pointer-events", "none")
+                    .attr("dominant-baseline", "middle")
+                    .attr("text-anchor", "middle")//在圆圈中加上数据
+                    /*.attr("dy", "0.3em")
+                    .attr("x", function (d) {
+                        if (d.name.length <= 4) {
+                            d3.select(this).append('tspan')
+                                .text(function () { return d.name; });
+                        } else {
+                            let top = d.name.slice(0, Math.ceil(d.name.length / 2));
+                            let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
+                            d3.select(this).append('tspan')
+                                .attr("x", 0)
+                                .attr("y", -4)
+                                .text(function () { return top; });
+                            d3.select(this).append('tspan')
+                                .attr("x", 0)
+                                .attr("y", 6)
+                                .text(function () { return bottom; });
+                        }
+                    })*/
+                    .text(function (d) { return d.name; })
+                    .call(d3.drag()
+                        .on("start", dragstarted2)
+                        .on("drag", dragged2)
+                        .on("end", dragended2));
+
+                function draw2() {
+                    svg_circlenodes2
+                        .attr("cx", function (d) { return d.x; })
+                        .attr("cy", function (d) { return d.y; });
+
+                    svg_text2//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
+                        .attr("x", function (d) { return d.x; })
+                        .attr("y", function (d) { return d.y; });
+
+                    svg_links2
+                        .attr("d", function (d) {
+                            let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
+                            let xchanges, xchanget, ychanges, ychanget;
+                            xchanges = (circle_radius2 / length) * (d.target.x - d.source.x);
+                            ychanges = (circle_radius2 / length) * (d.target.y - d.source.y);
+                            xchanget = (circle_radius2 / length) * (d.target.x - d.source.x);
+                            ychanget = (circle_radius2 / length) * (d.target.y - d.source.y);
+                            return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
+                        })
+                        .attr("marker-end", "url(#resolved)");
+
+                    link_text2
+                        .attr("x", function (d) { return (d.source.x + d.target.x - 10) / 2; })
+                        .attr("y", function (d) { return (d.source.y + d.target.y) / 2; });
+                }
+                simulation2.on("tick", draw2);
+                svg2.call(d3.zoom().scaleExtent([0.05, 8]).on('zoom', () => {
+                    // 保存当前缩放的属性值
+                    var transform2 = d3.event.transform;
+                    svg_circlenodes2.attr('transform', transform2);
+                    svg_links2.attr("transform", transform2);
+                    svg_text2.attr("transform", transform2);
+                    link_text2.attr("transform", transform2);
+                })).on('dblclick.zoom', null);
+            })
+        } else {
+            $("#character").remove();
+            $("#box").append("<svg id='force'></svg>");
+            drawforce();
+        }
+    }
+</script>
+
+</html>
