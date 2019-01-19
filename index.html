@@ -81,7 +81,7 @@
         <br>
         人物2: <input type="text" name="sname" />
         <button onclick="relationover()">返回</button>
-        <button onclick="change()">变换</button>
+        <button onclick="change()" style="margin-left: 10%">变换</button>
     </div>
     <div id="intro">
         <div style="float: right; cursor: pointer;" onclick="$('#intro').hide()">x</div>
@@ -355,7 +355,7 @@
                 if ($("#title").html() == node.name) {
                     svg_links.style("stroke-width", 0.5)
                         .style("stroke", "#ccc");
-                    link_text.style("visbility", "visible");
+                    link_text.style("visibility", "hidden");;
                     $("#intro").hide();
                     $("#title").html("title");
                     return;
@@ -406,7 +406,8 @@
                 if ($("#title").html() == node.name) {
                     svg_links.style("stroke-width", 0.5)
                         .style("stroke", "#ccc");
-                    link_text.style("visbility", "visible");
+                    
+                    link_text.style("visibility", "hidden");
                     $("#intro").hide();
                     $("#title").html("title");
                     return;
@@ -635,6 +636,8 @@
                 .attr("r", function (node) {
                     return node.weight;
                 })
+                .attr("x", 800)
+                .attr("y", 600)
                 .merge(svg_circlenodes).call(d3.drag()
                     .on("start", dragstarted)
                     .on("drag", dragged)
@@ -673,7 +676,7 @@
                     if ($("#title").html() == node.name) {
                         svg_links.style("stroke-width", 0.5)
                             .style("stroke", "#ccc");
-                        link_text.style("visbility", "visible");
+                        link_text.style("visibility", "hidden");;
                         $("#intro").hide();
                         $("#title").html("title");
                         return;
@@ -715,6 +718,8 @@
                 .attr("height", function (node) {
                     return node.weight;
                 })
+                .attr("x", 800)
+                .attr("y", 600)
                 .merge(svg_rectnodes).call(d3.drag()
                     .on("start", dragstarted)
                     .on("drag", dragged)
@@ -723,7 +728,7 @@
                     if ($("#title").html() == node.name) {
                         svg_links.style("stroke-width", 0.5)
                             .style("stroke", "#ccc");
-                        link_text.style("visbility", "visible");
+                        link_text.style("visibility", "hidden");;
                         $("#intro").hide();
                         $("#title").html("title");
                         return;
@@ -806,6 +811,7 @@
             simulation.nodes(nodes);
             simulation.force("link").links(links);
             simulation.alpha(0.3).restart();
+            $("#force").trigger("zoom");
         }
         
         function highlight(id) {
@@ -831,7 +837,7 @@
                     if ($("#title").html() == node.name) {
                         svg_links.style("stroke-width", 0.5)
                             .style("stroke", "#ccc");
-                        link_text.style("visbility", "visible");
+                        link_text.style("visibility", "hidden");;
                         $("#intro").hide();
                         $("#title").html("title");
                         return;
@@ -881,7 +887,7 @@
                     if ($("#title").html() == node.name) {
                         svg_links.style("stroke-width", 0.5)
                             .style("stroke", "#ccc");
-                        link_text.style("visbility", "visible");
+                        link_text.style("visibility", "hidden");;
                         $("#intro").hide();
                         $("#title").html("title");
                         return;
@@ -931,7 +937,7 @@
                     if ($("#title").html() == node.name) {
                         svg_links.style("stroke-width", 0.5)
                             .style("stroke", "#ccc");
-                        link_text.style("visbility", "visible");
+                        link_text.style("visibility", "hidden");;
                         $("#intro").hide();
                         $("#title").html("title");
                         return;
@@ -970,7 +976,7 @@
                     if ($("#title").html() == node.name) {
                         svg_links.style("stroke-width", 0.5)
                             .style("stroke", "#ccc");
-                        link_text.style("visbility", "visible");
+                        link_text.style("visibility", "hidden");;
                         $("#intro").hide();
                         $("#title").html("title");
                         return;
@@ -1267,19 +1273,35 @@
             }
             links3 = links3.filter(line => (line.source == id1 || line.target == id1 || line.source == id2 || line.target == id2));
             for (i = 0; i < links3.length; i++) {
-                if (links3[i].source == id1 || links3[i].source == id2) {
-                    ids.push(links3[i].target);
+                if (links3[i].source == id1) {
+                    let eventid = links3[i].target;
+                    for (let j = 0; j < links3.length; j++) {
+                        if (links3[j].source == eventid && links3[j].target == id2 || links3[j].target == eventid && links3[j].source == id2) {
+                            ids.push(links3[i].target);
+                            break;
+                        }
+                    }
                 }
-                if (links3[i].target == id1 || links3[i].target == id2) {
-                    ids.push(links3[i].source);
+                if (links3[i].target == id1) {
+                    let eventid = links3[i].source;
+                    for (let j = 0; j < links3.length; j++) {
+                        if (links3[j].source == eventid && links3[j].target == id2 || links3[j].target == eventid && links3[j].source == id2) {
+                            ids.push(links3[i].source);
+                            break;
+                        }
+                    }
                 }
             }
+            ids.push(id1);
+            ids.push(id2);
             for (i = 0; i < nodes3.length; i++) {
                 if (ids.indexOf(nodes3[i].id) >= 0) {
                     tmpnodes3.push(nodes3[i]);
                 }
             }
             nodes3 = tmpnodes3;
+            console.log(nodes3);
+            links3 = links3.filter(line => (ids.indexOf(line.source) >= 0 && ids.indexOf(line.target) >= 0));
             if (document.getElementById("force")) {
                 which = 1;
                 $("#force").remove();
