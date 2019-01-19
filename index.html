@@ -6,55 +6,65 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no">
     <title>Title</title>
     <style>
-        [role=person]{
-            fill:rgb(44, 160, 44)
+        [role=person] {
+            fill: rgb(44, 160, 44)
         }
-        [role=event]{
-            fill:rgb(20, 141, 228)
+
+        [role=event] {
+            fill: rgb(20, 141, 228)
         }
-        #force{
-            height:100%;
-            width:100%;
+
+        #force {
+            height: 100%;
+            width: 100%;
         }
-        #character{
-            height:100%;
-            width:100%;
+
+        #character {
+            height: 100%;
+            width: 100%;
         }
-        #relation{
-            height:100%;
-            width:100%;
+
+        #relation {
+            height: 100%;
+            width: 100%;
         }
-        #intro{
+
+        #intro {
             position: absolute;
             z-index: 9999;
             width: 180px;
             height: 210px;
             background-color: gainsboro;
         }
-        #pic{
+
+        #pic {
             width: 100%;
             text-align: center;
         }
-        img{
+
+        img {
             width: 80px;
             height: 80px;
         }
-        #title{
+
+        #title {
             text-align: center;
         }
-        #intro{
+
+        #intro {
             font-size: 10px;
         }
-        #colors{
+
+        #colors {
             position: absolute;
             z-index: 9999;
             right: 0;
         }
     </style>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
     <script src="js/d3.v4.min.js"></script>
     <script src="js/jquery-3.2.1.min.js"></script>
-    <script src="http://cdn.bootcss.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
 </head>
 
 <body>
@@ -76,16 +86,19 @@
         <h2 style="margin-left: 5px">test</h2>
     </div>
     <div id="twoname">
-        人物1: <input type="text" name="fname" />
+        人物1:
+        <input type="text" name="fname" />
         <button onclick="relaoftwo()">确定</button>
-        <br>
-        人物2: <input type="text" name="sname" />
+        <br> 人物2:
+        <input type="text" name="sname" />
         <button onclick="relationover()">返回</button>
         <button onclick="change()">变换</button>
     </div>
     <div id="intro">
         <div style="float: right; cursor: pointer;" onclick="$('#intro').hide()">x</div>
-        <div id="pic"><img></div>
+        <div id="pic">
+            <img>
+        </div>
         <div id="title"></div>
         <div id="content">这是一份简介</div>
     </div>
@@ -106,12 +119,9 @@
     var maxCharNum = 0;
     var barSVG = d3.select("#progressBar")
         .append("svg")
+        .attr("id", "barSVG")
         .attr("height", 30)
         .attr("width", 780);
-    barSVG.append("text")
-        .attr("x", 5)
-        .attr("y", 25)
-        .text("章节进度条：");
     var bookLen = 0;
     var groupArray = new Array("宋朝平民", "桃花岛", "金国", "全真教", "江南七怪", "宋朝官员", "宋朝武林（其他门派）", "蒙古", "北方武林", "西域", "丐帮", "大理国");
     var thecolor = new Array("green", "pink", "yellow", "red", "purple", "lightskyblue", "lightyellow", "greenyellow", "lightseagreen", "magenta", "slategrey", "orange");
@@ -165,6 +175,16 @@
     // 定时器.done：定义“定时器释放”后的后续操作
     function drawforce() {
         progress = 0;
+        $('#barSVG').remove();
+        barSVG = d3.select("#progressBar")
+            .append("svg")
+            .attr("id", "barSVG")
+            .attr("height", 30)
+            .attr("width", 780);
+        barSVG.append("text")
+            .attr("x", 5)
+            .attr("y", 25)
+            .text("章节进度条：");
         for (var i = 0; i < bookLen; i++) {
             barSVG.append("rect")
                 .attr("height", 20)
@@ -213,6 +233,8 @@
                         if (progress == bookLen + 1) {
                             alert("已到结局！");
                             clearInterval(timerID);
+                            d3.select('#startButton')
+                                .text("重来");
                         }
                         else {
                             d3.selectAll('.progressBarRect')
@@ -231,10 +253,25 @@
                     }, 1000);
                 }
                 else {
-                    d3.select('#startButton')
-                        .attr("class", "btn btn-primary btn-sm")
-                        .text("开始");
-                    clearInterval(timerID);
+                    if (progress == bookLen + 1){
+                        if (document.getElementById("force")) {
+                            $("#force").remove();
+                        } 
+                        else {
+                            $("#character").remove();
+                        }
+                        d3.select('#startButton')
+                            .attr("class", "btn btn-primary btn-sm")
+                            .text("开始");
+                        $("#box").append("<svg id='force'></svg>");
+                        drawforce();
+                    }
+                    else{
+                        d3.select('#startButton')
+                            .attr("class", "btn btn-primary btn-sm")
+                            .text("开始");
+                        clearInterval(timerID);
+                    }
                 }
             });
         d3.selectAll('.progressBarRect')
@@ -807,7 +844,7 @@
             simulation.force("link").links(links);
             simulation.alpha(0.3).restart();
         }
-        
+
         function highlight(id) {
             let ids = [];
             chapters[id].node.forEach(element => {
@@ -915,7 +952,7 @@
                     }
                 })
         }
-        
+
         function recover(id) {
             let ids = [];
             chapters[id].node.forEach(element => {
@@ -1222,14 +1259,19 @@
         })
     }
     function change() {
-        if (document.getElementById("force")) {
-            $("#force").remove();
-            $("#box").append("<svg id='character'></svg>");
-            drawcharacter();
-        } else {
-            $("#character").remove();
-            $("#box").append("<svg id='force'></svg>");
-            drawforce();
+        if (progress < bookLen) {
+            alert("故事推进结束后才可以查看人物关系！");
+        }
+        else {
+            if (document.getElementById("force")) {
+                $("#force").remove();
+                $("#box").append("<svg id='character'></svg>");
+                drawcharacter();
+            } else {
+                $("#character").remove();
+                $("#box").append("<svg id='force'></svg>");
+                drawforce();
+            }
         }
     }
     var which = 0;
@@ -1470,46 +1512,46 @@
                 svg_links3
                     .attr("d", function (d) {
                         let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
-                    let flag = (Math.abs(d.source.x - d.target.x) > Math.abs(d.source.y - d.target.y));
-                    let proportion = Math.abs(d.source.x - d.target.x) / Math.abs(d.source.y - d.target.y);
-                    let xchanges, xchanget, ychanges, ychanget;
-                    if (d.source.role == "person") {
-                        xchanges = (d.source.weight / length) * (d.target.x - d.source.x);
-                        ychanges = (d.source.weight / length) * (d.target.y - d.source.y);
-                    } else {
-                        if (flag) {
-                            xchanges = d.source.weight / 2;
-                            ychanges = (d.source.weight / 2) / proportion;
+                        let flag = (Math.abs(d.source.x - d.target.x) > Math.abs(d.source.y - d.target.y));
+                        let proportion = Math.abs(d.source.x - d.target.x) / Math.abs(d.source.y - d.target.y);
+                        let xchanges, xchanget, ychanges, ychanget;
+                        if (d.source.role == "person") {
+                            xchanges = (d.source.weight / length) * (d.target.x - d.source.x);
+                            ychanges = (d.source.weight / length) * (d.target.y - d.source.y);
                         } else {
-                            xchanges = (d.source.weight / 2) * proportion;
-                            ychanges = d.source.weight / 2;
+                            if (flag) {
+                                xchanges = d.source.weight / 2;
+                                ychanges = (d.source.weight / 2) / proportion;
+                            } else {
+                                xchanges = (d.source.weight / 2) * proportion;
+                                ychanges = d.source.weight / 2;
+                            }
+                            if (d.source.x > d.target.x) {
+                                xchanges = -xchanges;
+                            }
+                            if (d.source.y > d.target.y) {
+                                ychanges = -ychanges;
+                            }
                         }
-                        if (d.source.x > d.target.x) {
-                            xchanges = -xchanges;
-                        }
-                        if (d.source.y > d.target.y) {
-                            ychanges = -ychanges;
-                        }
-                    }
-                    if (d.target.role == "person") {
-                        xchanget = (d.target.weight / length) * (d.target.x - d.source.x);
-                        ychanget = (d.target.weight / length) * (d.target.y - d.source.y);
-                    } else {
-                        if (flag) {
-                            xchanget = d.target.weight / 2;
-                            ychanget = (d.target.weight / 2) / proportion;
+                        if (d.target.role == "person") {
+                            xchanget = (d.target.weight / length) * (d.target.x - d.source.x);
+                            ychanget = (d.target.weight / length) * (d.target.y - d.source.y);
                         } else {
-                            xchanget = (d.target.weight / 2) * proportion;
-                            ychanget = d.target.weight / 2;
+                            if (flag) {
+                                xchanget = d.target.weight / 2;
+                                ychanget = (d.target.weight / 2) / proportion;
+                            } else {
+                                xchanget = (d.target.weight / 2) * proportion;
+                                ychanget = d.target.weight / 2;
+                            }
+                            if (d.source.x > d.target.x) {
+                                xchanget = -xchanget;
+                            }
+                            if (d.source.y > d.target.y) {
+                                ychanget = -ychanget;
+                            }
                         }
-                        if (d.source.x > d.target.x) {
-                            xchanget = -xchanget;
-                        }
-                        if (d.source.y > d.target.y) {
-                            ychanget = -ychanget;
-                        }
-                    }
-                    return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
+                        return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
                     })
                     .attr("marker-end", "url(#resolved)");
             }
