@@ -35,6 +35,7 @@
             width: 180px;
             height: 210px;
             background-color: gainsboro;
+            left: 5px;
         }
 
         #pic {
@@ -1321,6 +1322,10 @@
     }
     var which = 0;
     function relaoftwo() {
+        if (progress < bookLen) {
+            alert("故事推进结束后才可以查看人物关系！");
+            return;
+        }
         var name1 = $("input[name='fname']").val();
         var name2 = $("input[name='sname']").val();
         d3.json("data/all_node&link.json", function (error, data) {
