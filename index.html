@@ -821,6 +821,11 @@
                     ids.push(element.id);
                 }
             });
+            for (let i = 0; i < nodes.length; i++) {
+                if (ids.indexOf(nodes[i].id) >= 0) {
+                    nodes[i].selected = 1;
+                }
+            }
             svg_rectnodes
                 .style("opacity", function (node) {
                     if (ids.indexOf(node.id) >= 0) {
@@ -1299,6 +1304,7 @@
                 }
             }
             nodes3 = tmpnodes3;
+            console.log(nodes3);
             links3 = links3.filter(line => (ids.indexOf(line.source) >= 0 && ids.indexOf(line.target) >= 0));
             if (document.getElementById("force")) {
                 which = 1;
