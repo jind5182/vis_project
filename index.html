@@ -253,10 +253,10 @@
                     }, 1000);
                 }
                 else {
-                    if (progress == bookLen + 1){
+                    if (progress == bookLen + 1) {
                         if (document.getElementById("force")) {
                             $("#force").remove();
-                        } 
+                        }
                         else {
                             $("#character").remove();
                         }
@@ -266,7 +266,7 @@
                         $("#box").append("<svg id='force'></svg>");
                         drawforce();
                     }
-                    else{
+                    else {
                         d3.select('#startButton')
                             .attr("class", "btn btn-primary btn-sm")
                             .text("开始");
@@ -356,7 +356,6 @@
             .attr("r", function (node) {
                 return node.weight;
             })
-            .attr("selected", 0)
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
@@ -436,7 +435,6 @@
             .attr("height", function (node) {
                 return node.weight;
             })
-            .attr("selected", 0)
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
@@ -445,7 +443,7 @@
                 if ($("#title").html() == node.name) {
                     svg_links.style("stroke-width", 0.5)
                         .style("stroke", "#ccc");
-                    
+
                     link_text.style("visibility", "hidden");
                     $("#intro").hide();
                     $("#title").html("title");
@@ -675,7 +673,6 @@
                 .attr("r", function (node) {
                     return node.weight;
                 })
-                .attr("selected", 0)
                 .merge(svg_circlenodes).call(d3.drag()
                     .on("start", dragstarted)
                     .on("drag", dragged)
@@ -756,7 +753,6 @@
                 .attr("height", function (node) {
                     return node.weight;
                 })
-                .attr("selected", 0)
                 .merge(svg_rectnodes).call(d3.drag()
                     .on("start", dragstarted)
                     .on("drag", dragged)
@@ -860,12 +856,16 @@
             });
             for (let i = 0; i < nodes.length; i++) {
                 if (ids.indexOf(nodes[i].id) >= 0) {
-                    nodes[i].selected = 1;
+                    if (nodes[i].selected) {
+                        nodes[i].selected++;
+                    } else {
+                        nodes[i].selected = 1;
+                    }
                 }
             }
             svg_rectnodes
                 .style("opacity", function (node) {
-                    if (ids.indexOf(node.id) >= 0) {
+                    if (node.selected > 0) {
                         return 1;
                     } else {
                         return 0.1;
@@ -910,7 +910,7 @@
                     $("#intro").show();
                 });
             svg_text.style("opacity", function (node) {
-                if (ids.indexOf(node.id) >= 0) {
+                if (node.selected > 0) {
                     return 1;
                 } else {
                     return 0.1;
@@ -918,7 +918,7 @@
             });
             svg_circlenodes
                 .style("opacity", function (node) {
-                    if (ids.indexOf(node.id) >= 0) {
+                    if (node.selected > 0) {
                         return 1;
                     } else {
                         return 0.1;
@@ -965,14 +965,33 @@
 
         function recover(id) {
             let ids = [];
+            let flag = 0;
             chapters[id].node.forEach(element => {
                 if (ids.indexOf(element.id) < 0) {
                     ids.push(element.id);
                 }
             });
+            for (let i = 0; i < nodes.length; i++) {
+                if (ids.indexOf(nodes[i].id) >= 0) {
+                    nodes[i].selected--;
+                }
+            }
+            for (let i = 0; i < nodes.length; i++) {
+                if (nodes[i].selected > 0) {
+                    flag = 1;
+                }
+            }
             svg_rectnodes
                 .style("opacity", function (node) {
-                    return node.opacity;
+                    if (flag) {
+                        if (node.selected > 0) {
+                            return 1;
+                        } else {
+                            return 0.1;
+                        }
+                    } else {
+                        return node.opacity;
+                    }
                 })
                 .on("click", function (node) {
                     if ($("#title").html() == node.name) {
@@ -1011,7 +1030,15 @@
                 });
             svg_circlenodes
                 .style("opacity", function (node) {
-                    return node.opacity;
+                    if (flag) {
+                        if (node.selected > 0) {
+                            return 1;
+                        } else {
+                            return 0.1;
+                        }
+                    } else {
+                        return node.opacity;
+                    }
                 })
                 .on("click", function (node) {
                     if ($("#title").html() == node.name) {
@@ -1049,7 +1076,15 @@
                     $("#intro").show();
                 });
             svg_text.style("opacity", function (node) {
-                return node.opacity;
+                if (flag) {
+                    if (node.selected > 0) {
+                        return 1;
+                    } else {
+                        return 0.1;
+                    }
+                } else {
+                    return node.opacity;
+                }
             });
         }
     }
