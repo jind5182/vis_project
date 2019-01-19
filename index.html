@@ -20,6 +20,10 @@
             height:100%;
             width:100%;
         }
+        #relation{
+            height:100%;
+            width:100%;
+        }
         #intro{
             position: absolute;
             z-index: 9999;
@@ -41,7 +45,13 @@
         #intro{
             font-size: 10px;
         }
+        #colors{
+            position: absolute;
+            z-index: 9999;
+            right: 0;
+        }
     </style>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <script src="js/d3.v4.min.js"></script>
     <script src="js/jquery-3.2.1.min.js"></script>
     <script src="http://cdn.bootcss.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
@@ -65,16 +75,21 @@
     <div id="chapter_name">
         <h2 style="margin-left: 5px">test</h2>
     </div>
-    <button onclick="change()">Change</button>
+    <div id="twoname">
+        人物1: <input type="text" name="fname" />
+        <button onclick="relaoftwo()">确定</button>
+        <br>
+        人物2: <input type="text" name="sname" />
+        <button onclick="relationover()">返回</button>
+        <button onclick="change()">变换</button>
+    </div>
     <div id="intro">
         <div style="float: right; cursor: pointer;" onclick="$('#intro').hide()">x</div>
         <div id="pic"><img></div>
         <div id="title"></div>
         <div id="content">这是一份简介</div>
     </div>
-    <div id="colors">
-        
-    </div>
+    <div id="colors"></div>
     <div id="box">
         <svg id="force"></svg>
     </div>
@@ -98,6 +113,25 @@
         .attr("y", 25)
         .text("章节进度条：");
     var bookLen = 0;
+    var groupArray = new Array("宋朝平民", "桃花岛", "金国", "全真教", "江南七怪", "宋朝官员", "宋朝武林（其他门派）", "蒙古", "北方武林", "西域", "丐帮", "大理国");
+    var thecolor = new Array("green", "pink", "yellow", "red", "purple", "lightskyblue", "lightyellow", "greenyellow", "lightseagreen", "magenta", "slategrey", "orange");
+    var rectSVG = d3.select('#colors')
+        .append("svg")
+        .attr("height", 300)
+        .attr("width", 150);
+    for (var i = 1; i <= 12; i++) {
+        rectSVG.append("rect")
+            .attr("width", 16)
+            .attr("height", 8)
+            .attr("x", 0)
+            .attr("y", 20 * (i - 1) + 2)
+            .attr("fill", thecolor[i - 1]);
+        rectSVG.append("text")
+            .attr("x", 20)
+            .attr("y", 20 * (i - 1) + 10)
+            .style("font-size", 12)
+            .text(groupArray[i - 1]);
+    }
     // jquery提供的“定时器”，用于同步操作
     var t_df = $.Deferred();
     //读入event_and_character数据
@@ -259,6 +293,7 @@
             .attr("viewBox", "0 0 800 500");
         var circle_radius = 10;
         $("#intro").hide();
+        $("#title").html("title");
 
         // 通过布局来转换数据，然后进行绘制
         var simulation = d3.forceSimulation(nodes)
@@ -552,6 +587,7 @@
                 let j;
                 for (j = 0; j < nodes.length; j++) {
                     if (tmpnodes[i].id == nodes[j].id) {
+                        nodes[j].weight = tmpnodes[i].weight;
                         break;
                     }
                 }
@@ -563,7 +599,7 @@
             svg_rectnodes.style("opacity", function (node) {
                 if (node.role == "event") {
                     if (node.opacity > 0.5) {
-                        node.opacity = node.opacity * 0.9;
+                        node.opacity = node.opacity * 0.95;
                     }
                     return node.opacity;
                 }
@@ -771,7 +807,7 @@
             simulation.force("link").links(links);
             simulation.alpha(0.3).restart();
         }
-
+        
         function highlight(id) {
             let ids = [];
             chapters[id].node.forEach(element => {
@@ -879,6 +915,7 @@
                     }
                 })
         }
+        
         function recover(id) {
             let ids = [];
             chapters[id].node.forEach(element => {
@@ -971,225 +1008,534 @@
     }
     t_df.done(drawforce);
 
+    function drawcharacter() {
+        d3.json("data/interact_weight.json", function (error, data) {
+            var links2 = data.char_relation;
+            var nodes2 = new Array();
+            for (let i = 0; i < links2.length; i++) {
+                let j;
+                for (j = 0; j < nodes2.length; j++) {
+                    if (links2[i].source == nodes2[j].name) {
+                        break;
+                    }
+                }
+                if (j >= nodes2.length) {
+                    nodes2.push({ name: links2[i].source });
+                }
+                for (j = 0; j < nodes2.length; j++) {
+                    if (links2[i].target == nodes2[j].name) {
+                        break;
+                    }
+                }
+                if (j >= nodes2.length) {
+                    nodes2.push({ name: links2[i].target });
+                }
+            }
+            var width2 = 800;
+            var height2 = 500;
+            var svg2 = d3.select("#character")
+                .attr("preserveAspectRatio", "xMidYMid meet")
+                .attr("viewBox", "0 0 800 500");
+            var circle_radius2 = 10;
+            $("#intro").hide();
+            $("#title").html("title");
+
+            // 通过布局来转换数据，然后进行绘制
+            var simulation2 = d3.forceSimulation(nodes2)
+                .force("link", d3.forceLink(links2).id(function (d) { return d.name }).distance(70))
+                .force("charge", d3.forceManyBody().strength(-8))
+                .force("center", d3.forceCenter(width2 / 2, height2 / 2));
+
+            var color2 = d3.scaleOrdinal(d3.schemeCategory20);
+            // 绘制线
+            var svg_links2 = svg2.selectAll(".edgepath")
+                .data(links2)
+                .enter()
+                .append("path")
+                .style("stroke", "#ccc")
+                .style("opacity", 0.5)
+                .style("stroke-width", function (line) {
+                    return line.weight * 5;
+                });
+
+            //节点对象
+            var svg_circlenodes2 = svg2.selectAll(".nodecircle")
+                .data(nodes2)
+                .enter()
+                .append("circle")
+                .attr("r", function (node) {
+                    return circle_radius2;
+                })
+                .call(d3.drag()
+                    .on("start", dragstarted2)
+                    .on("drag", dragged2)
+                    .on("end", dragended2))
+                .style("fill", function (node) {
+                    switch (power[node.name]) {
+                        case "宋朝平民":
+                            return "green";
+                        case "桃花岛":
+                            return "pink";
+                        case "金国":
+                            return "yellow";
+                        case "全真教":
+                            return "red";
+                        case "江南七怪":
+                            return "purple";
+                        case "宋朝官员":
+                            return "lightskyblue";
+                        case "宋朝武林（其他门派）":
+                            return "lightyellow";
+                        case "蒙古":
+                            return "greenyellow";
+                        case "北方武林":
+                            return "lightseagreen";
+                        case "西域":
+                            return "magenta";
+                        case "丐帮":
+                            return "slategrey";
+                        case "大理国":
+                            return "orange";
+                        default:
+                            return "tan"
+                    }
+                })
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        svg_links2
+                            .style("stroke", "#ccc");
+                        link_text2.style("visbility", "visible");
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    svg_links2
+                        .style("stroke", function (line) {
+                            if (line.source.name == node.name || line.target.name == node.name) {
+                                return "red";
+                            } else {
+                                return "#ccc";
+                            }
+                        });
+
+                    $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+
+            function dragstarted2(d) {
+                if (!d3.event.active) simulation2.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged2(d) {
+                d.fx = d3.event.x;
+                d.fy = d3.event.y;
+            }
+
+            function dragended2(d) {
+                if (!d3.event.active) simulation2.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            //连线描述
+            var link_text2 = svg2.selectAll(".edgepath")
+                .data(links2)
+                .enter()
+                .append("text")
+                .style("fill", "#000")
+                .style("font-size", 5)
+                .text(function (d) { return d.rela; });
+
+            //节点描述
+            var svg_text2 = svg2.selectAll(".nodecircle,.noderect")
+                .data(nodes2)
+                .enter()
+                .append("text")
+                .style("fill", "#000")
+                .style("font-size", 7)
+                .style("cursor", "default")
+                .style("pointer-events", "none")
+                .attr("dominant-baseline", "middle")
+                .attr("text-anchor", "middle")//在圆圈中加上数据
+                /*.attr("dy", "0.3em")
+                .attr("x", function (d) {
+                    if (d.name.length <= 4) {
+                        d3.select(this).append('tspan')
+                            .text(function () { return d.name; });
+                    } else {
+                        let top = d.name.slice(0, Math.ceil(d.name.length / 2));
+                        let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
+                        d3.select(this).append('tspan')
+                            .attr("x", 0)
+                            .attr("y", -4)
+                            .text(function () { return top; });
+                        d3.select(this).append('tspan')
+                            .attr("x", 0)
+                            .attr("y", 6)
+                            .text(function () { return bottom; });
+                    }
+                })*/
+                .text(function (d) { return d.name; })
+                .call(d3.drag()
+                    .on("start", dragstarted2)
+                    .on("drag", dragged2)
+                    .on("end", dragended2));
+
+            function draw2() {
+                svg_circlenodes2
+                    .attr("cx", function (d) { return d.x; })
+                    .attr("cy", function (d) { return d.y; });
+
+                svg_text2//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
+                    .attr("x", function (d) { return d.x; })
+                    .attr("y", function (d) { return d.y; });
+
+                svg_links2
+                    .attr("d", function (d) {
+                        let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
+                        let xchanges, xchanget, ychanges, ychanget;
+                        xchanges = (circle_radius2 / length) * (d.target.x - d.source.x);
+                        ychanges = (circle_radius2 / length) * (d.target.y - d.source.y);
+                        xchanget = (circle_radius2 / length) * (d.target.x - d.source.x);
+                        ychanget = (circle_radius2 / length) * (d.target.y - d.source.y);
+                        return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
+                    })
+                    .attr("marker-end", "url(#resolved)");
+
+                link_text2
+                    .attr("x", function (d) { return (d.source.x + d.target.x - 10) / 2; })
+                    .attr("y", function (d) { return (d.source.y + d.target.y) / 2; });
+            }
+            simulation2.on("tick", draw2);
+            svg2.call(d3.zoom().scaleExtent([0.05, 8]).on('zoom', () => {
+                // 保存当前缩放的属性值
+                var transform2 = d3.event.transform;
+                svg_circlenodes2.attr('transform', transform2);
+                svg_links2.attr("transform", transform2);
+                svg_text2.attr("transform", transform2);
+                link_text2.attr("transform", transform2);
+            })).on('dblclick.zoom', null);
+        })
+    }
     function change() {
         if (document.getElementById("force")) {
             $("#force").remove();
             $("#box").append("<svg id='character'></svg>");
-            d3.json("data/interact_weight.json", function (error, data) {
-                var links2 = data.char_relation;
-                var nodes2 = new Array();
-                for (let i = 0; i < links2.length; i++) {
-                    let j;
-                    for (j = 0; j < nodes2.length; j++) {
-                        if (links2[i].source == nodes2[j].name) {
-                            break;
-                        }
-                    }
-                    if (j >= nodes2.length) {
-                        nodes2.push({ name: links2[i].source });
-                    }
-                    for (j = 0; j < nodes2.length; j++) {
-                        if (links2[i].target == nodes2[j].name) {
-                            break;
-                        }
-                    }
-                    if (j >= nodes2.length) {
-                        nodes2.push({ name: links2[i].target });
-                    }
-                }
-                var width2 = 800;
-                var height2 = 500;
-                var svg2 = d3.select("#character")
-                    .attr("preserveAspectRatio", "xMidYMid meet")
-                    .attr("viewBox", "0 0 800 500");
-                var circle_radius2 = 10;
-                $("#intro").hide();
-
-                // 通过布局来转换数据，然后进行绘制
-                var simulation2 = d3.forceSimulation(nodes2)
-                    .force("link", d3.forceLink(links2).id(function (d) { return d.name }).distance(70))
-                    .force("charge", d3.forceManyBody().strength(-8))
-                    .force("center", d3.forceCenter(width2 / 2, height2 / 2));
-
-                var color2 = d3.scaleOrdinal(d3.schemeCategory20);
-                // 绘制线
-                var svg_links2 = svg2.selectAll(".edgepath")
-                    .data(links2)
-                    .enter()
-                    .append("path")
-                    .style("stroke", "#ccc")
-                    .style("opacity", 0.5)
-                    .style("stroke-width", function (line) {
-                        return line.weight * 5;
-                    });
-
-                //节点对象
-                var svg_circlenodes2 = svg2.selectAll(".nodecircle")
-                    .data(nodes2)
-                    .enter()
-                    .append("circle")
-                    .attr("r", function (node) {
-                        return circle_radius2;
-                    })
-                    .call(d3.drag()
-                        .on("start", dragstarted2)
-                        .on("drag", dragged2)
-                        .on("end", dragended2))
-                    .style("fill", function (node) {
-                        switch (power[node.name]) {
-                            case "宋朝平民":
-                                return "green";
-                            case "桃花岛":
-                                return "pink";
-                            case "金国":
-                                return "yellow";
-                            case "全真教":
-                                return "red";
-                            case "江南七怪":
-                                return "purple";
-                            case "宋朝官员":
-                                return "lightskyblue";
-                            case "宋朝武林（其他门派）":
-                                return "lightyellow";
-                            case "蒙古":
-                                return "greenyellow";
-                            case "北方武林":
-                                return "lightseagreen";
-                            case "西域":
-                                return "magenta";
-                            case "丐帮":
-                                return "slategrey";
-                            case "大理国":
-                                return "orange";
-                            default:
-                                return "tan"
-                        }
-                    })
-                    .on("click", function (node) {
-                        if ($("#title").html() == node.name) {
-                            svg_links2
-                                .style("stroke", "#ccc");
-                            link_text2.style("visbility", "visible");
-                            $("#intro").hide();
-                            $("#title").html("title");
-                            return;
-                        }
-                        svg_links2
-                            .style("stroke", function (line) {
-                                if (line.source.name == node.name || line.target.name == node.name) {
-                                    return "red";
-                                } else {
-                                    return "#ccc";
-                                }
-                            });
-
-                        $("img").attr('src', "pic/" + node.name + ".jpg").show();
-                        $("#title").html(node.name);
-                        $("#content").html(intros[node.name]);
-                        $("#intro").show();
-                    });
-
-                function dragstarted2(d) {
-                    if (!d3.event.active) simulation2.alphaTarget(0.3).restart();
-                    d.fx = d.x;
-                    d.fy = d.y;
-                }
-
-                function dragged2(d) {
-                    d.fx = d3.event.x;
-                    d.fy = d3.event.y;
-                }
-
-                function dragended2(d) {
-                    if (!d3.event.active) simulation2.alphaTarget(0);
-                    d.fx = null;
-                    d.fy = null;
-                }
-
-                //连线描述
-                var link_text2 = svg2.selectAll(".edgepath")
-                    .data(links2)
-                    .enter()
-                    .append("text")
-                    .style("fill", "#000")
-                    .style("font-size", 5)
-                    .text(function (d) { return d.rela; });
-
-                //节点描述
-                var svg_text2 = svg2.selectAll(".nodecircle,.noderect")
-                    .data(nodes2)
-                    .enter()
-                    .append("text")
-                    .style("fill", "#000")
-                    .style("font-size", 7)
-                    .style("cursor", "default")
-                    .style("pointer-events", "none")
-                    .attr("dominant-baseline", "middle")
-                    .attr("text-anchor", "middle")//在圆圈中加上数据
-                    /*.attr("dy", "0.3em")
-                    .attr("x", function (d) {
-                        if (d.name.length <= 4) {
-                            d3.select(this).append('tspan')
-                                .text(function () { return d.name; });
-                        } else {
-                            let top = d.name.slice(0, Math.ceil(d.name.length / 2));
-                            let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
-                            d3.select(this).append('tspan')
-                                .attr("x", 0)
-                                .attr("y", -4)
-                                .text(function () { return top; });
-                            d3.select(this).append('tspan')
-                                .attr("x", 0)
-                                .attr("y", 6)
-                                .text(function () { return bottom; });
-                        }
-                    })*/
-                    .text(function (d) { return d.name; })
-                    .call(d3.drag()
-                        .on("start", dragstarted2)
-                        .on("drag", dragged2)
-                        .on("end", dragended2));
-
-                function draw2() {
-                    svg_circlenodes2
-                        .attr("cx", function (d) { return d.x; })
-                        .attr("cy", function (d) { return d.y; });
-
-                    svg_text2//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
-                        .attr("x", function (d) { return d.x; })
-                        .attr("y", function (d) { return d.y; });
-
-                    svg_links2
-                        .attr("d", function (d) {
-                            let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
-                            let xchanges, xchanget, ychanges, ychanget;
-                            xchanges = (circle_radius2 / length) * (d.target.x - d.source.x);
-                            ychanges = (circle_radius2 / length) * (d.target.y - d.source.y);
-                            xchanget = (circle_radius2 / length) * (d.target.x - d.source.x);
-                            ychanget = (circle_radius2 / length) * (d.target.y - d.source.y);
-                            return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
-                        })
-                        .attr("marker-end", "url(#resolved)");
-
-                    link_text2
-                        .attr("x", function (d) { return (d.source.x + d.target.x - 10) / 2; })
-                        .attr("y", function (d) { return (d.source.y + d.target.y) / 2; });
-                }
-                simulation2.on("tick", draw2);
-                svg2.call(d3.zoom().scaleExtent([0.05, 8]).on('zoom', () => {
-                    // 保存当前缩放的属性值
-                    var transform2 = d3.event.transform;
-                    svg_circlenodes2.attr('transform', transform2);
-                    svg_links2.attr("transform", transform2);
-                    svg_text2.attr("transform", transform2);
-                    link_text2.attr("transform", transform2);
-                })).on('dblclick.zoom', null);
-            })
+            drawcharacter();
         } else {
             $("#character").remove();
             $("#box").append("<svg id='force'></svg>");
             drawforce();
         }
+    }
+    var which = 0;
+    function relaoftwo() {
+        var name1 = $("input[name='fname']").val();
+        var name2 = $("input[name='sname']").val();
+        d3.json("data/all_node&link.json", function (error, data) {
+            var nodes3 = data.node;
+            var links3 = data.link;
+            let i;
+            var tmpnodes3 = new Array();
+            let id1, id2;
+            let ids = [];
+            for (i = 0; i < nodes3.length; i++) {
+                if (nodes3[i].name == name1) {
+                    id1 = nodes3[i].id;
+                    tmpnodes3.push(nodes3[i]);
+                    break;
+                }
+            }
+            if (i >= nodes3.length) {
+                alert("没有此人物哦！");
+                return;
+            }
+            for (i = 0; i < nodes3.length; i++) {
+                if (nodes3[i].name == name2) {
+                    id2 = nodes3[i].id;
+                    tmpnodes3.push(nodes3[i]);
+                    break;
+                }
+            }
+            if (i >= nodes3.length) {
+                alert("没有此人物哦！");
+                return;
+            }
+            links3 = links3.filter(line => (line.source == id1 || line.target == id1 || line.source == id2 || line.target == id2));
+            for (i = 0; i < links3.length; i++) {
+                if (links3[i].source == id1 || links3[i].source == id2) {
+                    ids.push(links3[i].target);
+                }
+                if (links3[i].target == id1 || links3[i].target == id2) {
+                    ids.push(links3[i].source);
+                }
+            }
+            for (i = 0; i < nodes3.length; i++) {
+                if (ids.indexOf(nodes3[i].id) >= 0) {
+                    tmpnodes3.push(nodes3[i]);
+                }
+            }
+            nodes3 = tmpnodes3;
+            if (document.getElementById("force")) {
+                which = 1;
+                $("#force").remove();
+            }
+            if (document.getElementById("character")) {
+                which = 2;
+                $("#character").remove();
+            }
+            $("#box").append("<svg id='relation'></svg>");
+            var width3 = 800;
+            var height3 = 500;
+            var svg3 = d3.select("#relation")
+                .attr("preserveAspectRatio", "xMidYMid meet")
+                .attr("viewBox", "0 0 800 500");
+            var circle_radius3 = 20;
+            $("#intro").hide();
+            $("#title").html("title");
+
+            // 通过布局来转换数据，然后进行绘制
+            var simulation3 = d3.forceSimulation(nodes3)
+                .force("link", d3.forceLink(links3).id(function (d) { return d.id }).distance(100))
+                .force("charge", d3.forceManyBody().strength(-200))
+                .force("center", d3.forceCenter(width3 / 2, height3 / 2));
+
+            var color3 = d3.scaleOrdinal(d3.schemeCategory20);
+            // 绘制线
+            var svg_links3 = svg3.selectAll(".edgepath")
+                .data(links3)
+                .enter()
+                .append("path")
+                .style("stroke", "#ccc")
+                .style("opacity", 0.5)
+                .style("stroke-width", function (line) {
+                    return 1;
+                });
+
+            //节点对象
+            var svg_circlenodes3 = svg3.selectAll(".nodecircle")
+                .data(nodes3.filter(node => node.role == "person"))
+                .enter()
+                .append("circle")
+                .attr("r", function (node) {
+                    return circle_radius3;
+                })
+                .call(d3.drag()
+                    .on("start", dragstarted3)
+                    .on("drag", dragged3)
+                    .on("end", dragended3))
+                .style("fill", function (node) {
+                    switch (power[node.name]) {
+                        case "宋朝平民":
+                            return "green";
+                        case "桃花岛":
+                            return "pink";
+                        case "金国":
+                            return "yellow";
+                        case "全真教":
+                            return "red";
+                        case "江南七怪":
+                            return "purple";
+                        case "宋朝官员":
+                            return "lightskyblue";
+                        case "宋朝武林（其他门派）":
+                            return "lightyellow";
+                        case "蒙古":
+                            return "greenyellow";
+                        case "北方武林":
+                            return "lightseagreen";
+                        case "西域":
+                            return "magenta";
+                        case "丐帮":
+                            return "slategrey";
+                        case "大理国":
+                            return "orange";
+                        default:
+                            return "tan"
+                    }
+                })
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+
+            var svg_rectnodes3 = svg3.selectAll(".noderect")
+                .data(nodes3.filter(node => node.role == "event"))
+                .enter()
+                .append("rect")
+                .attr("width", function (node) {
+                    return node.weight;
+                })
+                .attr("height", function (node) {
+                    return node.weight;
+                })
+                .call(d3.drag()
+                    .on("start", dragstarted3)
+                    .on("drag", dragged3)
+                    .on("end", dragended3))
+                .on("click", function (node) {
+                    if ($("#title").html() == node.name) {
+                        $("#intro").hide();
+                        $("#title").html("title");
+                        return;
+                    }
+                    $("img").hide();
+                    $("#title").html(node.name);
+                    $("#content").html(intros[node.name]);
+                    $("#intro").show();
+                });
+
+            function dragstarted3(d) {
+                if (!d3.event.active) simulation3.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged3(d) {
+                d.fx = d3.event.x;
+                d.fy = d3.event.y;
+            }
+
+            function dragended3(d) {
+                if (!d3.event.active) simulation3.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            //节点描述
+            var svg_text3 = svg3.selectAll(".nodecircle,.noderect")
+                .data(nodes3)
+                .enter()
+                .append("text")
+                .style("fill", "#000")
+                .style("font-size", 7)
+                .style("cursor", "default")
+                .style("pointer-events", "none")
+                .attr("dominant-baseline", "middle")
+                .attr("text-anchor", "middle")//在圆圈中加上数据
+                /*.attr("dy", "0.3em")
+                .attr("x", function (d) {
+                    if (d.name.length <= 4) {
+                        d3.select(this).append('tspan')
+                            .text(function () { return d.name; });
+                    } else {
+                        let top = d.name.slice(0, Math.ceil(d.name.length / 2));
+                        let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
+                        d3.select(this).append('tspan')
+                            .attr("x", 0)
+                            .attr("y", -4)
+                            .text(function () { return top; });
+                        d3.select(this).append('tspan')
+                            .attr("x", 0)
+                            .attr("y", 6)
+                            .text(function () { return bottom; });
+                    }
+                })*/
+                .text(function (d) { return d.name; })
+                .call(d3.drag()
+                    .on("start", dragstarted3)
+                    .on("drag", dragged3)
+                    .on("end", dragended3));
+
+            function draw3() {
+                svg_circlenodes3
+                    .attr("cx", function (d) { return d.x; })
+                    .attr("cy", function (d) { return d.y; })
+                    .attr("role", function (d) {
+                        return d.role;
+                    });
+
+                svg_rectnodes3
+                    .attr("x", function (d) { return d.x - d.weight / 2; })
+                    .attr("y", function (d) { return d.y - d.weight / 2; })
+                    .attr("role", function (d) {
+                        return d.role;
+                    });
+
+                svg_text3//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
+                    .attr("x", function (d) { return d.x; })
+                    .attr("y", function (d) { return d.y; });
+
+                svg_links3
+                    .attr("d", function (d) {
+                        let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
+                    let flag = (Math.abs(d.source.x - d.target.x) > Math.abs(d.source.y - d.target.y));
+                    let proportion = Math.abs(d.source.x - d.target.x) / Math.abs(d.source.y - d.target.y);
+                    let xchanges, xchanget, ychanges, ychanget;
+                    if (d.source.role == "person") {
+                        xchanges = (d.source.weight / length) * (d.target.x - d.source.x);
+                        ychanges = (d.source.weight / length) * (d.target.y - d.source.y);
+                    } else {
+                        if (flag) {
+                            xchanges = d.source.weight / 2;
+                            ychanges = (d.source.weight / 2) / proportion;
+                        } else {
+                            xchanges = (d.source.weight / 2) * proportion;
+                            ychanges = d.source.weight / 2;
+                        }
+                        if (d.source.x > d.target.x) {
+                            xchanges = -xchanges;
+                        }
+                        if (d.source.y > d.target.y) {
+                            ychanges = -ychanges;
+                        }
+                    }
+                    if (d.target.role == "person") {
+                        xchanget = (d.target.weight / length) * (d.target.x - d.source.x);
+                        ychanget = (d.target.weight / length) * (d.target.y - d.source.y);
+                    } else {
+                        if (flag) {
+                            xchanget = d.target.weight / 2;
+                            ychanget = (d.target.weight / 2) / proportion;
+                        } else {
+                            xchanget = (d.target.weight / 2) * proportion;
+                            ychanget = d.target.weight / 2;
+                        }
+                        if (d.source.x > d.target.x) {
+                            xchanget = -xchanget;
+                        }
+                        if (d.source.y > d.target.y) {
+                            ychanget = -ychanget;
+                        }
+                    }
+                    return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
+                    })
+                    .attr("marker-end", "url(#resolved)");
+            }
+            simulation3.on("tick", draw3);
+            svg3.call(d3.zoom().scaleExtent([0.05, 8]).on('zoom', () => {
+                // 保存当前缩放的属性值
+                var transform3 = d3.event.transform;
+                svg_circlenodes3.attr('transform', transform3);
+                svg_rectnodes3.attr('transform', transform3);
+                svg_links3.attr("transform", transform3);
+                svg_text3.attr("transform", transform3);
+            })).on('dblclick.zoom', null);
+        });
+    }
+    function relationover() {
+        if (which == 0) {
+            return;
+        }
+        $("#relation").remove();
+        if (which == 1) {
+            $("#box").append("<svg id='force'></svg>");
+            drawforce();
+            return;
+        }
+        $("#box").append("<svg id='character'></svg>");
+        drawcharacter();
     }
 </script>
 
