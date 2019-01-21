@@ -234,7 +234,7 @@
                     //插入更新图谱的函数，更新前取消所有高亮
                     add(progress)
                     timerID = setInterval(function () {
-                        if (progress == bookLen + 1) {
+                        if (progress == bookLen) {
                             alert("已到结局！");
                             clearInterval(timerID);
                             d3.select('#startButton')
@@ -248,19 +248,21 @@
                                 .attr("active", false);
                             progress++;
                             //修改标题
-                            document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">'
-                                + json.chapter[progress].chap_name + '</h2>';
-                            //填充进度条的格子
-                            d3.select('#rect' + String(progress))
-                                .attr("fill", d3.hsl(206, charNumArray[progress] / maxCharNum, 0.5).toString());
-                            //插入更新图谱的函数，更新前取消所有高亮
-                            add(progress)
+                            if (progress < bookLen){
+                                document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">'
+                                    + json.chapter[progress].chap_name + '</h2>';
+                                //填充进度条的格子
+                                d3.select('#rect' + String(progress))
+                                    .attr("fill", d3.hsl(206, charNumArray[progress] / maxCharNum, 0.5).toString());
+                                //插入更新图谱的函数，更新前取消所有高亮
+                                add(progress);
+                            }
                         }
                     }, 1000);
                 }
                 else {
                     status = 0;
-                    if (progress == bookLen + 1) {
+                    if (progress == bookLen) {
                         if (document.getElementById("force")) {
                             $("#force").remove();
                         }
@@ -285,7 +287,6 @@
             .on("click", function (d, i) {
                 //console.log(this.id);
                 //console.log(d);
-                var status = document.getElementById('startButton').className;
                 if (status == 1) {
                     alert("请在暂停状态下查看每章详情！");
                 }
@@ -1099,6 +1100,9 @@
 
     function drawcharacter() {
         d3.json("data/interact_weight.json", function (error, data) {
+            document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">' + "人物关系视图" + '</h2>';
+            d3.selectAll('.progressBarRect')
+                .on('click', function () { });
             var links2 = data.char_relation;
             var nodes2 = new Array();
             for (let i = 0; i < links2.length; i++) {
@@ -1332,313 +1336,341 @@
             alert("故事推进结束后才可以查看人物关系！");
             return;
         }
+        document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">' + "两人关系（点击章节可以查看章节名）" + '</h2>';
+        d3.selectAll('.progressBarRect')
+            .on("click", function (d, i) {
+                //console.log(this.id);
+                //console.log(d);
+                var chapID = parseInt(this.id.substring(4));
+                document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">'
+                    + json.chapter[chapID].chap_name + '</h2>';
+            });
         var name1 = $("input[name='fname']").val();
         var name2 = $("input[name='sname']").val();
         d3.json("data/all_node&link.json", function (error, data) {
-            var nodes3 = data.node;
-            var links3 = data.link;
-            let i;
-            var tmpnodes3 = new Array();
-            let id1, id2;
-            let ids = [];
-            for (i = 0; i < nodes3.length; i++) {
-                if (nodes3[i].name == name1) {
-                    id1 = nodes3[i].id;
-                    tmpnodes3.push(nodes3[i]);
-                    break;
+            d3.json("data/event_chapter.json", function (error, event_chapter_json) {
+                var nodes3 = data.node;
+                var links3 = data.link;
+                let i;
+                var tmpnodes3 = new Array();
+                let id1, id2;
+                let ids = [];
+                for (i = 0; i < nodes3.length; i++) {
+                    if (nodes3[i].name == name1) {
+                        id1 = nodes3[i].id;
+                        tmpnodes3.push(nodes3[i]);
+                        break;
+                    }
                 }
-            }
-            if (i >= nodes3.length) {
-                alert("没有此人物哦！");
-                return;
-            }
-            for (i = 0; i < nodes3.length; i++) {
-                if (nodes3[i].name == name2) {
-                    id2 = nodes3[i].id;
-                    tmpnodes3.push(nodes3[i]);
-                    break;
+                if (i >= nodes3.length) {
+                    alert("没有此人物哦！");
+                    return;
                 }
-            }
-            if (i >= nodes3.length) {
-                alert("没有此人物哦！");
-                return;
-            }
-            links3 = links3.filter(line => (line.source == id1 || line.target == id1 || line.source == id2 || line.target == id2));
-            for (i = 0; i < links3.length; i++) {
-                if (links3[i].source == id1) {
-                    let eventid = links3[i].target;
-                    for (let j = 0; j < links3.length; j++) {
-                        if (links3[j].source == eventid && links3[j].target == id2 || links3[j].target == eventid && links3[j].source == id2) {
-                            ids.push(links3[i].target);
-                            break;
+                for (i = 0; i < nodes3.length; i++) {
+                    if (nodes3[i].name == name2) {
+                        id2 = nodes3[i].id;
+                        tmpnodes3.push(nodes3[i]);
+                        break;
+                    }
+                }
+                if (i >= nodes3.length) {
+                    alert("没有此人物哦！");
+                    return;
+                }
+                links3 = links3.filter(line => (line.source == id1 || line.target == id1 || line.source == id2 || line.target == id2));
+                for (i = 0; i < links3.length; i++) {
+                    if (links3[i].source == id1) {
+                        let eventid = links3[i].target;
+                        for (let j = 0; j < links3.length; j++) {
+                            if (links3[j].source == eventid && links3[j].target == id2 || links3[j].target == eventid && links3[j].source == id2) {
+                                ids.push(links3[i].target);
+                                break;
+                            }
+                        }
+                    }
+                    if (links3[i].target == id1) {
+                        let eventid = links3[i].source;
+                        for (let j = 0; j < links3.length; j++) {
+                            if (links3[j].source == eventid && links3[j].target == id2 || links3[j].target == eventid && links3[j].source == id2) {
+                                ids.push(links3[i].source);
+                                break;
+                            }
                         }
                     }
                 }
-                if (links3[i].target == id1) {
-                    let eventid = links3[i].source;
-                    for (let j = 0; j < links3.length; j++) {
-                        if (links3[j].source == eventid && links3[j].target == id2 || links3[j].target == eventid && links3[j].source == id2) {
-                            ids.push(links3[i].source);
-                            break;
-                        }
+                ids.push(id1);
+                ids.push(id2);
+                for (i = 0; i < nodes3.length; i++) {
+                    if (ids.indexOf(nodes3[i].id) >= 0) {
+                        tmpnodes3.push(nodes3[i]);
                     }
                 }
-            }
-            ids.push(id1);
-            ids.push(id2);
-            for (i = 0; i < nodes3.length; i++) {
-                if (ids.indexOf(nodes3[i].id) >= 0) {
-                    tmpnodes3.push(nodes3[i]);
+                nodes3 = tmpnodes3;
+                console.log(nodes3);
+                links3 = links3.filter(line => (ids.indexOf(line.source) >= 0 && ids.indexOf(line.target) >= 0));
+                if (document.getElementById("force")) {
+                    which = 1;
+                    $("#force").remove();
                 }
-            }
-            nodes3 = tmpnodes3;
-            console.log(nodes3);
-            links3 = links3.filter(line => (ids.indexOf(line.source) >= 0 && ids.indexOf(line.target) >= 0));
-            if (document.getElementById("force")) {
-                which = 1;
-                $("#force").remove();
-            }
-            if (document.getElementById("character")) {
-                which = 2;
-                $("#character").remove();
-            }
-            if (document.getElementById("relation")) {
-                $("#relation").remove();
-            }
-            $("#box").append("<svg id='relation'></svg>");
-            var width3 = 800;
-            var height3 = 500;
-            var svg3 = d3.select("#relation")
-                .attr("preserveAspectRatio", "xMidYMid meet")
-                .attr("viewBox", "0 0 800 500");
-            var circle_radius3 = 20;
-            $("#intro").hide();
-            $("#title").html("title");
+                if (document.getElementById("character")) {
+                    which = 2;
+                    $("#character").remove();
+                }
+                if (document.getElementById("relation")) {
+                    $("#relation").remove();
+                }
+                $("#box").append("<svg id='relation'></svg>");
+                var width3 = 800;
+                var height3 = 500;
+                var svg3 = d3.select("#relation")
+                    .attr("preserveAspectRatio", "xMidYMid meet")
+                    .attr("viewBox", "0 0 800 500");
+                var circle_radius3 = 20;
+                $("#intro").hide();
+                $("#title").html("title");
 
-            // 通过布局来转换数据，然后进行绘制
-            var simulation3 = d3.forceSimulation(nodes3)
-                .force("link", d3.forceLink(links3).id(function (d) { return d.id }).distance(100))
-                .force("charge", d3.forceManyBody().strength(-200))
-                .force("center", d3.forceCenter(width3 / 2, height3 / 2));
+                // 通过布局来转换数据，然后进行绘制
+                var simulation3 = d3.forceSimulation(nodes3)
+                    .force("link", d3.forceLink(links3).id(function (d) { return d.id }).distance(100))
+                    .force("charge", d3.forceManyBody().strength(-200))
+                    .force("center", d3.forceCenter(width3 / 2, height3 / 2));
 
-            var color3 = d3.scaleOrdinal(d3.schemeCategory20);
-            // 绘制线
-            var svg_links3 = svg3.selectAll(".edgepath")
-                .data(links3)
-                .enter()
-                .append("path")
-                .style("stroke", "#ccc")
-                .style("opacity", 0.5)
-                .style("stroke-width", function (line) {
-                    return 1;
-                });
-
-            //节点对象
-            var svg_circlenodes3 = svg3.selectAll(".nodecircle")
-                .data(nodes3.filter(node => node.role == "person"))
-                .enter()
-                .append("circle")
-                .attr("r", function (node) {
-                    return circle_radius3;
-                })
-                .call(d3.drag()
-                    .on("start", dragstarted3)
-                    .on("drag", dragged3)
-                    .on("end", dragended3))
-                .style("fill", function (node) {
-                    switch (power[node.name]) {
-                        case "宋朝平民":
-                            return "green";
-                        case "桃花岛":
-                            return "pink";
-                        case "金国":
-                            return "yellow";
-                        case "全真教":
-                            return "red";
-                        case "江南七怪":
-                            return "purple";
-                        case "宋朝官员":
-                            return "lightskyblue";
-                        case "宋朝武林（其他门派）":
-                            return "lightyellow";
-                        case "蒙古":
-                            return "greenyellow";
-                        case "北方武林":
-                            return "lightseagreen";
-                        case "西域":
-                            return "magenta";
-                        case "丐帮":
-                            return "slategrey";
-                        case "大理国":
-                            return "orange";
-                        default:
-                            return "tan"
-                    }
-                })
-                .on("click", function (node) {
-                    if ($("#title").html() == node.name) {
-                        $("#intro").hide();
-                        $("#title").html("title");
-                        return;
-                    }
-                    $("img").attr('src', "pic/" + node.name + ".jpg").show();
-                    $("#title").html(node.name);
-                    $("#content").html(intros[node.name]);
-                    $("#intro").show();
-                });
-
-            var svg_rectnodes3 = svg3.selectAll(".noderect")
-                .data(nodes3.filter(node => node.role == "event"))
-                .enter()
-                .append("rect")
-                .attr("width", function (node) {
-                    return node.weight;
-                })
-                .attr("height", function (node) {
-                    return node.weight;
-                })
-                .call(d3.drag()
-                    .on("start", dragstarted3)
-                    .on("drag", dragged3)
-                    .on("end", dragended3))
-                .on("click", function (node) {
-                    if ($("#title").html() == node.name) {
-                        $("#intro").hide();
-                        $("#title").html("title");
-                        return;
-                    }
-                    $("img").hide();
-                    $("#title").html(node.name);
-                    $("#content").html(intros[node.name]);
-                    $("#intro").show();
-                });
-
-            function dragstarted3(d) {
-                if (!d3.event.active) simulation3.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
-            }
-
-            function dragged3(d) {
-                d.fx = d3.event.x;
-                d.fy = d3.event.y;
-            }
-
-            function dragended3(d) {
-                if (!d3.event.active) simulation3.alphaTarget(0);
-                d.fx = null;
-                d.fy = null;
-            }
-
-            //节点描述
-            var svg_text3 = svg3.selectAll(".nodecircle,.noderect")
-                .data(nodes3)
-                .enter()
-                .append("text")
-                .style("fill", "#000")
-                .style("font-size", 7)
-                .style("cursor", "default")
-                .style("pointer-events", "none")
-                .attr("dominant-baseline", "middle")
-                .attr("text-anchor", "middle")//在圆圈中加上数据
-                /*.attr("dy", "0.3em")
-                .attr("x", function (d) {
-                    if (d.name.length <= 4) {
-                        d3.select(this).append('tspan')
-                            .text(function () { return d.name; });
-                    } else {
-                        let top = d.name.slice(0, Math.ceil(d.name.length / 2));
-                        let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
-                        d3.select(this).append('tspan')
-                            .attr("x", 0)
-                            .attr("y", -4)
-                            .text(function () { return top; });
-                        d3.select(this).append('tspan')
-                            .attr("x", 0)
-                            .attr("y", 6)
-                            .text(function () { return bottom; });
-                    }
-                })*/
-                .text(function (d) { return d.name; })
-                .call(d3.drag()
-                    .on("start", dragstarted3)
-                    .on("drag", dragged3)
-                    .on("end", dragended3));
-
-            function draw3() {
-                svg_circlenodes3
-                    .attr("cx", function (d) { return d.x; })
-                    .attr("cy", function (d) { return d.y; })
-                    .attr("role", function (d) {
-                        return d.role;
+                var color3 = d3.scaleOrdinal(d3.schemeCategory20);
+                // 绘制线
+                var svg_links3 = svg3.selectAll(".edgepath")
+                    .data(links3)
+                    .enter()
+                    .append("path")
+                    .style("stroke", "#ccc")
+                    .style("opacity", 0.5)
+                    .style("stroke-width", function (line) {
+                        return 1;
                     });
 
-                svg_rectnodes3
-                    .attr("x", function (d) { return d.x - d.weight / 2; })
-                    .attr("y", function (d) { return d.y - d.weight / 2; })
-                    .attr("role", function (d) {
-                        return d.role;
-                    });
-
-                svg_text3//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
-                    .attr("x", function (d) { return d.x; })
-                    .attr("y", function (d) { return d.y; });
-
-                svg_links3
-                    .attr("d", function (d) {
-                        let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
-                        let flag = (Math.abs(d.source.x - d.target.x) > Math.abs(d.source.y - d.target.y));
-                        let proportion = Math.abs(d.source.x - d.target.x) / Math.abs(d.source.y - d.target.y);
-                        let xchanges, xchanget, ychanges, ychanget;
-                        if (d.source.role == "person") {
-                            xchanges = (d.source.weight / length) * (d.target.x - d.source.x);
-                            ychanges = (d.source.weight / length) * (d.target.y - d.source.y);
-                        } else {
-                            if (flag) {
-                                xchanges = d.source.weight / 2;
-                                ychanges = (d.source.weight / 2) / proportion;
-                            } else {
-                                xchanges = (d.source.weight / 2) * proportion;
-                                ychanges = d.source.weight / 2;
-                            }
-                            if (d.source.x > d.target.x) {
-                                xchanges = -xchanges;
-                            }
-                            if (d.source.y > d.target.y) {
-                                ychanges = -ychanges;
-                            }
-                        }
-                        if (d.target.role == "person") {
-                            xchanget = (d.target.weight / length) * (d.target.x - d.source.x);
-                            ychanget = (d.target.weight / length) * (d.target.y - d.source.y);
-                        } else {
-                            if (flag) {
-                                xchanget = d.target.weight / 2;
-                                ychanget = (d.target.weight / 2) / proportion;
-                            } else {
-                                xchanget = (d.target.weight / 2) * proportion;
-                                ychanget = d.target.weight / 2;
-                            }
-                            if (d.source.x > d.target.x) {
-                                xchanget = -xchanget;
-                            }
-                            if (d.source.y > d.target.y) {
-                                ychanget = -ychanget;
-                            }
-                        }
-                        return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
+                //节点对象
+                var svg_circlenodes3 = svg3.selectAll(".nodecircle")
+                    .data(nodes3.filter(node => node.role == "person"))
+                    .enter()
+                    .append("circle")
+                    .attr("r", function (node) {
+                        return circle_radius3;
                     })
-                    .attr("marker-end", "url(#resolved)");
-            }
-            simulation3.on("tick", draw3);
-            svg3.call(d3.zoom().scaleExtent([0.05, 8]).on('zoom', () => {
-                // 保存当前缩放的属性值
-                var transform3 = d3.event.transform;
-                svg_circlenodes3.attr('transform', transform3);
-                svg_rectnodes3.attr('transform', transform3);
-                svg_links3.attr("transform", transform3);
-                svg_text3.attr("transform", transform3);
-            })).on('dblclick.zoom', null);
+                    .call(d3.drag()
+                        .on("start", dragstarted3)
+                        .on("drag", dragged3)
+                        .on("end", dragended3))
+                    .style("fill", function (node) {
+                        switch (power[node.name]) {
+                            case "宋朝平民":
+                                return "green";
+                            case "桃花岛":
+                                return "pink";
+                            case "金国":
+                                return "yellow";
+                            case "全真教":
+                                return "red";
+                            case "江南七怪":
+                                return "purple";
+                            case "宋朝官员":
+                                return "lightskyblue";
+                            case "宋朝武林（其他门派）":
+                                return "lightyellow";
+                            case "蒙古":
+                                return "greenyellow";
+                            case "北方武林":
+                                return "lightseagreen";
+                            case "西域":
+                                return "magenta";
+                            case "丐帮":
+                                return "slategrey";
+                            case "大理国":
+                                return "orange";
+                            default:
+                                return "tan"
+                        }
+                    })
+                    .on("click", function (node) {
+                        if ($("#title").html() == node.name) {
+                            $("#intro").hide();
+                            $("#title").html("title");
+                            return;
+                        }
+                        $("img").attr('src', "pic/" + node.name + ".jpg").show();
+                        $("#title").html(node.name);
+                        $("#content").html(intros[node.name]);
+                        $("#intro").show();
+                    });
+                //高亮事件对应章节
+                var event_chap = new Array();
+                eventNodes = nodes3.filter(node => node.role == "event");
+                for (i = 0; i < eventNodes.length; i++){
+                    var chapID = event_chapter_json[eventNodes[i]['name']];
+                    if (event_chap.indexOf(chapID) < 0){
+                        event_chap.push(chapID);
+                    }
+                }
+                d3.selectAll('.progressBarRect')
+                    .attr("opacity", function(){
+                        var chapID = parseInt(this.id.substring(4));
+                        if (event_chap.indexOf(chapID) > 0){
+                            return 0.7;
+                        }
+                        else
+                            return 0.2;
+                    });
+                var svg_rectnodes3 = svg3.selectAll(".noderect")
+                    .data(nodes3.filter(node => node.role == "event"))
+                    .enter()
+                    .append("rect")
+                    .attr("width", function (node) {
+                        return node.weight;
+                    })
+                    .attr("height", function (node) {
+                        return node.weight;
+                    })
+                    .call(d3.drag()
+                        .on("start", dragstarted3)
+                        .on("drag", dragged3)
+                        .on("end", dragended3))
+                    .on("click", function (node) {
+                        if ($("#title").html() == node.name) {
+                            $("#intro").hide();
+                            $("#title").html("title");
+                            return;
+                        }
+                        $("img").hide();
+                        $("#title").html(node.name);
+                        $("#content").html(intros[node.name]);
+                        $("#intro").show();
+                    });
+
+                function dragstarted3(d) {
+                    if (!d3.event.active) simulation3.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+
+                function dragged3(d) {
+                    d.fx = d3.event.x;
+                    d.fy = d3.event.y;
+                }
+
+                function dragended3(d) {
+                    if (!d3.event.active) simulation3.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+                //节点描述
+                var svg_text3 = svg3.selectAll(".nodecircle,.noderect")
+                    .data(nodes3)
+                    .enter()
+                    .append("text")
+                    .style("fill", "#000")
+                    .style("font-size", 7)
+                    .style("cursor", "default")
+                    .style("pointer-events", "none")
+                    .attr("dominant-baseline", "middle")
+                    .attr("text-anchor", "middle")//在圆圈中加上数据
+                    /*.attr("dy", "0.3em")
+                    .attr("x", function (d) {
+                        if (d.name.length <= 4) {
+                            d3.select(this).append('tspan')
+                                .text(function () { return d.name; });
+                        } else {
+                            let top = d.name.slice(0, Math.ceil(d.name.length / 2));
+                            let bottom = d.name.slice(Math.ceil(d.name.length / 2), d.name.length);
+                            d3.select(this).append('tspan')
+                                .attr("x", 0)
+                                .attr("y", -4)
+                                .text(function () { return top; });
+                            d3.select(this).append('tspan')
+                                .attr("x", 0)
+                                .attr("y", 6)
+                                .text(function () { return bottom; });
+                        }
+                    })*/
+                    .text(function (d) { return d.name; })
+                    .call(d3.drag()
+                        .on("start", dragstarted3)
+                        .on("drag", dragged3)
+                        .on("end", dragended3));
+
+                function draw3() {
+                    svg_circlenodes3
+                        .attr("cx", function (d) { return d.x; })
+                        .attr("cy", function (d) { return d.y; })
+                        .attr("role", function (d) {
+                            return d.role;
+                        });
+
+                    svg_rectnodes3
+                        .attr("x", function (d) { return d.x - d.weight / 2; })
+                        .attr("y", function (d) { return d.y - d.weight / 2; })
+                        .attr("role", function (d) {
+                            return d.role;
+                        });
+
+                    svg_text3//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
+                        .attr("x", function (d) { return d.x; })
+                        .attr("y", function (d) { return d.y; });
+
+                    svg_links3
+                        .attr("d", function (d) {
+                            let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
+                            let flag = (Math.abs(d.source.x - d.target.x) > Math.abs(d.source.y - d.target.y));
+                            let proportion = Math.abs(d.source.x - d.target.x) / Math.abs(d.source.y - d.target.y);
+                            let xchanges, xchanget, ychanges, ychanget;
+                            if (d.source.role == "person") {
+                                xchanges = (d.source.weight / length) * (d.target.x - d.source.x);
+                                ychanges = (d.source.weight / length) * (d.target.y - d.source.y);
+                            } else {
+                                if (flag) {
+                                    xchanges = d.source.weight / 2;
+                                    ychanges = (d.source.weight / 2) / proportion;
+                                } else {
+                                    xchanges = (d.source.weight / 2) * proportion;
+                                    ychanges = d.source.weight / 2;
+                                }
+                                if (d.source.x > d.target.x) {
+                                    xchanges = -xchanges;
+                                }
+                                if (d.source.y > d.target.y) {
+                                    ychanges = -ychanges;
+                                }
+                            }
+                            if (d.target.role == "person") {
+                                xchanget = (d.target.weight / length) * (d.target.x - d.source.x);
+                                ychanget = (d.target.weight / length) * (d.target.y - d.source.y);
+                            } else {
+                                if (flag) {
+                                    xchanget = d.target.weight / 2;
+                                    ychanget = (d.target.weight / 2) / proportion;
+                                } else {
+                                    xchanget = (d.target.weight / 2) * proportion;
+                                    ychanget = d.target.weight / 2;
+                                }
+                                if (d.source.x > d.target.x) {
+                                    xchanget = -xchanget;
+                                }
+                                if (d.source.y > d.target.y) {
+                                    ychanget = -ychanget;
+                                }
+                            }
+                            return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
+                        })
+                        .attr("marker-end", "url(#resolved)");
+                }
+                simulation3.on("tick", draw3);
+                svg3.call(d3.zoom().scaleExtent([0.05, 8]).on('zoom', () => {
+                    // 保存当前缩放的属性值
+                    var transform3 = d3.event.transform;
+                    svg_circlenodes3.attr('transform', transform3);
+                    svg_rectnodes3.attr('transform', transform3);
+                    svg_links3.attr("transform", transform3);
+                    svg_text3.attr("transform", transform3);
+                })).on('dblclick.zoom', null);
+            });
         });
     }
     function relationover() {
