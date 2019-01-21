@@ -1612,6 +1612,10 @@
         });
     }
     function relationover() {
+        if (!document.getElementById("relation")) {
+            alert("没事返回个**！");
+            return;
+        }
         if (which == 0) {
             return;
         }
