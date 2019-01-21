@@ -9,26 +9,21 @@
         [role=person] {
             fill: rgb(44, 160, 44)
         }
-
         [role=event] {
             fill: rgb(20, 141, 228)
         }
-
         #force {
             height: 100%;
             width: 100%;
         }
-
         #character {
             height: 100%;
             width: 100%;
         }
-
         #relation {
             height: 100%;
             width: 100%;
         }
-
         #intro {
             position: absolute;
             z-index: 9999;
@@ -37,25 +32,20 @@
             background-color: gainsboro;
             left: 5px;
         }
-
         #pic {
             width: 100%;
             text-align: center;
         }
-
         img {
             width: 80px;
             height: 80px;
         }
-
         #title {
             text-align: center;
         }
-
         #intro {
             font-size: 10px;
         }
-
         #colors {
             position: absolute;
             z-index: 9999;
@@ -311,11 +301,9 @@
                             this.active = active;
                             recover(chapID);
                         }
-
                     }
                 }
             });
-
         var nodes = new Array();
         let tmpnodes = chapters[0].node;
         for (let i = 0; i < tmpnodes.length; i++) {
@@ -330,7 +318,6 @@
             }
         }
         var links = chapters[0].link;
-
         var width = 800;
         var height = 500;
         var svg = d3.select("#force")
@@ -339,13 +326,11 @@
         var circle_radius = 10;
         $("#intro").hide();
         $("#title").html("title");
-
         // 通过布局来转换数据，然后进行绘制
         var simulation = d3.forceSimulation(nodes)
             .force("link", d3.forceLink(links).id(function (d) { return d.id }).distance(50))
             .force("charge", d3.forceManyBody().strength(-100))
             .force("center", d3.forceCenter(width / 2, height / 2));
-
         var color = d3.scaleOrdinal(d3.schemeCategory20);
         // 绘制线
         var svg_links = svg.selectAll(".edgepath")
@@ -355,7 +340,6 @@
             .style("stroke", "#ccc")
             .style("opacity", 0.5)
             .style("stroke-width", 0.5);
-
         //节点对象
         var svg_circlenodes = svg.selectAll(".nodecircle")
             .data(nodes.filter(node => node.role == "person"))
@@ -426,13 +410,11 @@
                         return "hidden";
                     }
                 });
-
                 $("img").attr('src', "pic/" + node.name + ".jpg").show();
                 $("#title").html(node.name);
                 $("#content").html(intros[node.name]);
                 $("#intro").show();
             });
-
         var svg_rectnodes = svg.selectAll(".noderect")
             .data(nodes.filter(node => node.role == "event"))
             .enter()
@@ -451,7 +433,6 @@
                 if ($("#title").html() == node.name) {
                     svg_links.style("stroke-width", 0.5)
                         .style("stroke", "#ccc");
-
                     link_text.style("visibility", "hidden");
                     $("#intro").hide();
                     $("#title").html("title");
@@ -483,24 +464,20 @@
                 $("#content").html(intros[node.name]);
                 $("#intro").show();
             });
-
         function dragstarted(d) {
             if (!d3.event.active) simulation.alphaTarget(0.3).restart();
             d.fx = d.x;
             d.fy = d.y;
         }
-
         function dragged(d) {
             d.fx = d3.event.x;
             d.fy = d3.event.y;
         }
-
         function dragended(d) {
             if (!d3.event.active) simulation.alphaTarget(0);
             d.fx = null;
             d.fy = null;
         }
-
         //连线描述
         var link_text = svg.selectAll(".edgepath")
             .data(links)
@@ -510,7 +487,6 @@
             .style("font-size", 5)
             .style("visibility", "hidden")
             .text(function (d) { return d.rela; });
-
         //节点描述
         var svg_text = svg.selectAll(".nodecircle,.noderect")
             .data(nodes)
@@ -545,7 +521,6 @@
                 .on("start", dragstarted)
                 .on("drag", dragged)
                 .on("end", dragended));
-
         function draw() {
             svg_circlenodes
                 .attr("cx", function (d) { return d.x; })
@@ -553,18 +528,15 @@
                 .attr("role", function (d) {
                     return d.role;
                 });
-
             svg_rectnodes
                 .attr("x", function (d) { return d.x - d.weight / 2; })
                 .attr("y", function (d) { return d.y - d.weight / 2; })
                 .attr("role", function (d) {
                     return d.role;
                 });
-
             svg_text//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
                 .attr("x", function (d) { return d.x; })
                 .attr("y", function (d) { return d.y; });
-
             svg_links
                 .attr("d", function (d) {
                     let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
@@ -610,7 +582,6 @@
                     return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
                 })
                 .attr("marker-end", "url(#resolved)");
-
             link_text
                 .attr("x", function (d) { return (d.source.x + d.target.x - 10) / 2; })
                 .attr("y", function (d) { return (d.source.y + d.target.y) / 2; });
@@ -625,7 +596,6 @@
             svg_text.attr("transform", transform);
             link_text.attr("transform", transform);
         })).on('dblclick.zoom', null);
-
         //动态添加节点
         function add(progress) {
             let tmpnodes = chapters[progress].node;
@@ -661,7 +631,6 @@
             svg_circlenodes.attr("r", function (node) { return node.weight; })
             restart()
         }
-
         function restart() {
             // Apply the general update pattern to the nodes.
             // Apply the general update pattern to the links.
@@ -673,7 +642,6 @@
                 .style("opacity", 0.5)
                 .style("stroke-width", 0.5)
                 .merge(svg_links);
-
             svg_circlenodes = svg_circlenodes
                 .data(nodes.filter(node => node.role == "person"))
                 .enter()
@@ -750,7 +718,6 @@
                     $("#content").html(intros[node.name]);
                     $("#intro").show();
                 });
-
             svg_rectnodes = svg_rectnodes
                 .data(nodes.filter(node => node.role == "event"))
                 .enter()
@@ -800,7 +767,6 @@
                     $("#content").html(intros[node.name]);
                     $("#intro").show();
                 });
-
             //节点描述
             svg_text = svg_text
                 .data(nodes)
@@ -836,7 +802,6 @@
                     .on("start", dragstarted)
                     .on("drag", dragged)
                     .on("end", dragended));
-
             link_text = link_text
                 .data(links)
                 .enter()
@@ -846,7 +811,6 @@
                 .style("visibility", "hidden")
                 .text(function (d) { return d.rela; })
                 .merge(link_text);
-
             // svg_text = svg_text.data()
             // Update and restart the simulation.
             simulation.nodes(nodes);
@@ -854,7 +818,6 @@
             simulation.alpha(0.3).restart();
             $("#force").trigger("zoom");
         }
-
         function highlight(id) {
             let ids = [];
             chapters[id].node.forEach(element => {
@@ -970,7 +933,6 @@
                     }
                 })
         }
-
         function recover(id) {
             let ids = [];
             let flag = 0;
@@ -1097,7 +1059,6 @@
         }
     }
     t_df.done(drawforce);
-
     function drawcharacter() {
         d3.json("data/interact_weight.json", function (error, data) {
             document.getElementById('chapter_name').innerHTML = '<h2 style="margin-left: 5px">' + "人物关系视图" + '</h2>';
@@ -1132,13 +1093,11 @@
             var circle_radius2 = 10;
             $("#intro").hide();
             $("#title").html("title");
-
             // 通过布局来转换数据，然后进行绘制
             var simulation2 = d3.forceSimulation(nodes2)
                 .force("link", d3.forceLink(links2).id(function (d) { return d.name }).distance(70))
                 .force("charge", d3.forceManyBody().strength(-8))
                 .force("center", d3.forceCenter(width2 / 2, height2 / 2));
-
             var color2 = d3.scaleOrdinal(d3.schemeCategory20);
             // 绘制线
             var svg_links2 = svg2.selectAll(".edgepath")
@@ -1150,7 +1109,6 @@
                 .style("stroke-width", function (line) {
                     return line.weight * 5;
                 });
-
             //节点对象
             var svg_circlenodes2 = svg2.selectAll(".nodecircle")
                 .data(nodes2)
@@ -1210,30 +1168,25 @@
                                 return "#ccc";
                             }
                         });
-
                     $("img").attr('src', "pic/" + node.name + ".jpg").show();
                     $("#title").html(node.name);
                     $("#content").html(intros[node.name]);
                     $("#intro").show();
                 });
-
             function dragstarted2(d) {
                 if (!d3.event.active) simulation2.alphaTarget(0.3).restart();
                 d.fx = d.x;
                 d.fy = d.y;
             }
-
             function dragged2(d) {
                 d.fx = d3.event.x;
                 d.fy = d3.event.y;
             }
-
             function dragended2(d) {
                 if (!d3.event.active) simulation2.alphaTarget(0);
                 d.fx = null;
                 d.fy = null;
             }
-
             //连线描述
             var link_text2 = svg2.selectAll(".edgepath")
                 .data(links2)
@@ -1242,7 +1195,6 @@
                 .style("fill", "#000")
                 .style("font-size", 5)
                 .text(function (d) { return d.rela; });
-
             //节点描述
             var svg_text2 = svg2.selectAll(".nodecircle,.noderect")
                 .data(nodes2)
@@ -1277,16 +1229,13 @@
                     .on("start", dragstarted2)
                     .on("drag", dragged2)
                     .on("end", dragended2));
-
             function draw2() {
                 svg_circlenodes2
                     .attr("cx", function (d) { return d.x; })
                     .attr("cy", function (d) { return d.y; });
-
                 svg_text2//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
                     .attr("x", function (d) { return d.x; })
                     .attr("y", function (d) { return d.y; });
-
                 svg_links2
                     .attr("d", function (d) {
                         let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
@@ -1298,7 +1247,6 @@
                         return 'M ' + (d.source.x + xchanges) + ' ' + (d.source.y + ychanges) + ' L ' + (d.target.x - xchanget) + ' ' + (d.target.y - ychanget);
                     })
                     .attr("marker-end", "url(#resolved)");
-
                 link_text2
                     .attr("x", function (d) { return (d.source.x + d.target.x - 10) / 2; })
                     .attr("y", function (d) { return (d.source.y + d.target.y) / 2; });
@@ -1315,6 +1263,10 @@
         })
     }
     function change() {
+        if (document.getElementById("relation")) {
+            alert("请先返回！");
+            return;
+        }
         if (progress < bookLen) {
             alert("故事推进结束后才可以查看人物关系！");
         }
@@ -1428,13 +1380,11 @@
                 var circle_radius3 = 20;
                 $("#intro").hide();
                 $("#title").html("title");
-
                 // 通过布局来转换数据，然后进行绘制
                 var simulation3 = d3.forceSimulation(nodes3)
                     .force("link", d3.forceLink(links3).id(function (d) { return d.id }).distance(100))
                     .force("charge", d3.forceManyBody().strength(-200))
                     .force("center", d3.forceCenter(width3 / 2, height3 / 2));
-
                 var color3 = d3.scaleOrdinal(d3.schemeCategory20);
                 // 绘制线
                 var svg_links3 = svg3.selectAll(".edgepath")
@@ -1446,7 +1396,6 @@
                     .style("stroke-width", function (line) {
                         return 1;
                     });
-
                 //节点对象
                 var svg_circlenodes3 = svg3.selectAll(".nodecircle")
                     .data(nodes3.filter(node => node.role == "person"))
@@ -1543,24 +1492,20 @@
                         $("#content").html(intros[node.name]);
                         $("#intro").show();
                     });
-
                 function dragstarted3(d) {
                     if (!d3.event.active) simulation3.alphaTarget(0.3).restart();
                     d.fx = d.x;
                     d.fy = d.y;
                 }
-
                 function dragged3(d) {
                     d.fx = d3.event.x;
                     d.fy = d3.event.y;
                 }
-
                 function dragended3(d) {
                     if (!d3.event.active) simulation3.alphaTarget(0);
                     d.fx = null;
                     d.fy = null;
                 }
-
                 //节点描述
                 var svg_text3 = svg3.selectAll(".nodecircle,.noderect")
                     .data(nodes3)
@@ -1595,7 +1540,6 @@
                         .on("start", dragstarted3)
                         .on("drag", dragged3)
                         .on("end", dragended3));
-
                 function draw3() {
                     svg_circlenodes3
                         .attr("cx", function (d) { return d.x; })
@@ -1603,18 +1547,15 @@
                         .attr("role", function (d) {
                             return d.role;
                         });
-
                     svg_rectnodes3
                         .attr("x", function (d) { return d.x - d.weight / 2; })
                         .attr("y", function (d) { return d.y - d.weight / 2; })
                         .attr("role", function (d) {
                             return d.role;
                         });
-
                     svg_text3//.attr("transform", (d) => { return "translate(" + d.x + "," + d.y + ")"; });
                         .attr("x", function (d) { return d.x; })
                         .attr("y", function (d) { return d.y; });
-
                     svg_links3
                         .attr("d", function (d) {
                             let length = Math.sqrt(Math.pow((d.source.x - d.target.x), 2) + Math.pow((d.source.y - d.target.y), 2));
