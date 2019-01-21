@@ -228,9 +228,7 @@
                             alert("已到结局！");
                             clearInterval(timerID);
                             d3.select('#startButton')
-                                .attr("class", "btn btn-primary btn-sm")
                                 .text("重来");
-                            status = 0;
                         }
                         else {
                             d3.selectAll('.progressBarRect')
@@ -257,7 +255,12 @@
                             $("#force").remove();
                         }
                         else {
-                            $("#character").remove();
+                            if (document.getElementById("relation")) {
+                                $("#relation").remove();
+                            }
+                            else{
+                                $("#character").remove();
+                            }
                         }
                         d3.select('#startButton')
                             .attr("class", "btn btn-primary btn-sm")
