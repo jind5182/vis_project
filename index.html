@@ -275,8 +275,6 @@
             });
         d3.selectAll('.progressBarRect')
             .on("click", function (d, i) {
-                //console.log(this.id);
-                //console.log(d);
                 if (status == 1) {
                     alert("请在暂停状态下查看每章详情！");
                 }
@@ -623,7 +621,7 @@
             svg_text.style("opacity", function (node) {
                 if (node.role == "event") {
                     if (node.opacity > 0.5) {
-                        node.opacity = node.opacity * 0.9;
+                        node.opacity = node.opacity * 0.95;
                     }
                     return node.opacity;
                 }
@@ -1358,7 +1356,6 @@
                     }
                 }
                 nodes3 = tmpnodes3;
-                console.log(nodes3);
                 links3 = links3.filter(line => (ids.indexOf(line.source) >= 0 && ids.indexOf(line.target) >= 0));
                 if (document.getElementById("force")) {
                     which = 1;
